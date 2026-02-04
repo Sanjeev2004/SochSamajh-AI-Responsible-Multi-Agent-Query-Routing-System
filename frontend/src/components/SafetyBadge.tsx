@@ -1,4 +1,4 @@
-import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
+import { Dot } from "lucide-react";
 import { Domain, RiskLevel } from "../types";
 
 interface SafetyBadgeProps {
@@ -9,22 +9,33 @@ interface SafetyBadgeProps {
 function toneClasses(tone: SafetyBadgeProps["tone"]) {
     switch (tone) {
         case "danger":
-            return "bg-rose-500/20 text-rose-200 border-rose-500/40";
+            return "border-rose-500/30 bg-rose-500/10 text-rose-300";
         case "warning":
-            return "bg-amber-500/20 text-amber-200 border-amber-500/40";
+            return "border-amber-500/30 bg-amber-500/10 text-amber-300";
         case "success":
-            return "bg-emerald-500/20 text-emerald-200 border-emerald-500/40";
+            return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
         default:
-            return "bg-slate-500/20 text-slate-200 border-slate-500/40";
+            return "border-slate-600/30 bg-slate-600/10 text-slate-400";
+    }
+}
+
+function toneColor(tone: SafetyBadgeProps["tone"]) {
+    switch (tone) {
+        case "danger":
+            return "text-rose-400";
+        case "warning":
+            return "text-amber-400";
+        case "success":
+            return "text-emerald-400";
+        default:
+            return "text-slate-500";
     }
 }
 
 export function SafetyBadge({ label, tone }: SafetyBadgeProps) {
-    const Icon = tone === "danger" ? ShieldX : tone === "warning" ? ShieldAlert : ShieldCheck;
-
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${toneClasses(tone)}`}>
-            <Icon className="h-3.5 w-3.5" />
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClasses(tone)}`}>
+            <Dot className={`h-1.5 w-1.5 ${toneColor(tone)}`} fill="currentColor" />
             {label}
         </span>
     );

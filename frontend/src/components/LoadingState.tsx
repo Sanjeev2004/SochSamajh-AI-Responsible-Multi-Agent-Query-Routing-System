@@ -1,22 +1,19 @@
-const steps = [
-    "Screening for safety signals",
-    "Classifying intent and risk",
-    "Routing to specialized agent",
-    "Formatting final response"
-];
-
 export function LoadingState() {
     return (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-            <p className="text-sm text-slate-300">Processing...</p>
-            <div className="mt-4 space-y-3">
-                {steps.map((step, index) => (
-                    <div key={step} className="flex items-center gap-3">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" style={{ animationDelay: `${index * 0.2}s` }} />
-                        <span className="text-sm text-slate-200">{step}</span>
-                    </div>
+        <div className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+            <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        className="h-1.5 w-1.5 rounded-full bg-indigo-500"
+                        style={{
+                            animation: `pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                            animationDelay: `${i * 0.3}s`
+                        }}
+                    />
                 ))}
             </div>
+            <span className="text-xs text-slate-400">Processing...</span>
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Send } from "lucide-react";
 
 interface QueryInputProps {
@@ -11,42 +11,41 @@ const MAX_CHARS = 2000;
 export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
     const [value, setValue] = useState("");
 
-    const remaining = useMemo(() => MAX_CHARS - value.length, [value]);
-
     function handleSubmit() {
         if (!value.trim()) return;
         onSubmit(value.trim());
+        setValue("");
+    }
+
+    function handleKeyDown(e: React.KeyboardEvent) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            handleSubmit();
+        }
     }
 
     return (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Ask a question</h2>
-                <span className="text-xs text-slate-400">Safety-aware routing enabled</span>
-            </div>
-            <p className="mt-2 text-sm text-slate-400">
-                This system provides educational information only and will refuse unsafe requests.
-            </p>
+        <div className="space-y-3">
             <textarea
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
+                onKeyDown={handleKeyDown}
                 maxLength={MAX_CHARS}
-                placeholder="Type your medical or legal question here..."
-                className="mt-4 h-32 w-full resize-none rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Ask your medical or legal question..."
+                className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 p-4 text-sm text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
+                rows={5}
             />
-            <div className="mt-3 flex items-center justify-between">
-                <span className={`text-xs ${remaining < 100 ? "text-amber-400" : "text-slate-400"}`}>
-                    {remaining} characters remaining
-                </span>
+            <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">{value.length} / {MAX_CHARS}</span>
                 <button
                     onClick={handleSubmit}
                     disabled={disabled || !value.trim()}
-                    className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                    <Send className="h-4 w-4" />
-                    Submit
+                    <Send className="h-3.5 w-3.5" />
+                    Send
                 </button>
             </div>
         </div>
     );
+}
 }

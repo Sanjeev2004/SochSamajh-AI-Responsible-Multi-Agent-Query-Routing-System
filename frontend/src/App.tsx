@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, HeartPulse } from "lucide-react";
 import { getHealth, routeQuery } from "./hooks/useApi";
 import { HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
@@ -56,67 +55,67 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-            <div className="mx-auto max-w-5xl px-6 py-12">
-                <header className="flex flex-col gap-6">
-                    <div className="flex items-center gap-3">
-                        <div className="rounded-2xl bg-indigo-500/20 p-3">
-                            <HeartPulse className="h-6 w-6 text-indigo-300" />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl font-bold">Medical & Legal Query Router</h1>
-                            <p className="text-sm text-slate-400">Safety-aware, multi-agent routing with LangGraph + LangSmith</p>
-                        </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+            <div className="mx-auto max-w-4xl px-6 py-8">
+                {/* Minimal Header */}
+                <header className="mb-12 flex items-center justify-between border-b border-slate-800 pb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold">Medical & Legal Router</h1>
+                        <p className="mt-1 text-xs text-slate-400">Safety-aware AI assistant</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1 text-xs text-slate-300">
-                            <Activity className="h-4 w-4 text-emerald-400" />
-                            {health?.status === "ok" ? "Backend healthy" : "Backend unreachable"}
-                        </span>
-                        {health?.model && (
-                            <span className="rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1 text-xs text-slate-300">
-                                Model: {health.model}
-                            </span>
+                    <div className="text-right text-xs text-slate-400">
+                        {health?.status === "ok" ? (
+                            <p className="text-emerald-400">Ready</p>
+                        ) : (
+                            <p className="text-slate-500">Offline</p>
                         )}
                     </div>
                 </header>
 
-                <main className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="space-y-6">
-                        <QueryInput onSubmit={handleSubmit} disabled={loading} />
-                        {error && <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</p>}
-                        {loading && <LoadingState />}
-                        {currentResult && !loading && <ResponseDisplay result={currentResult} />}
-                    </div>
+                {/* Main Content - Single Column */}
+                <main className="space-y-8">
+                    {/* Query Input */}
+                    <QueryInput onSubmit={handleSubmit} disabled={loading} />
 
-                    <aside className="space-y-6">
-                        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-                            <h2 className="text-lg font-semibold">Response history</h2>
-                            <div className="mt-4 space-y-4">
-                                {history.length === 0 && <p className="text-sm text-slate-400">No queries yet.</p>}
+                    {/* Error */}
+                    {error && (
+                        <div className="rounded-lg bg-rose-500/10 p-3 text-xs text-rose-100 border border-rose-500/30">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Loading State */}
+                    {loading && <LoadingState />}
+
+                    {/* Response */}
+                    {currentResult && !loading && <ResponseDisplay result={currentResult} />}
+
+                    {/* Crisis Resources */}
+                    {showCrisisResources && (
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                            <p className="text-xs text-amber-100 leading-relaxed">
+                                <strong>Crisis Support:</strong> Call 988 (US) | Text HOME to 741741 | Emergency: 911
+                            </p>
+                        </div>
+                    )}
+
+                    {/* History */}
+                    {history.length > 0 && (
+                        <div className="border-t border-slate-800 pt-8">
+                            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Recent</h3>
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
                                 {history.map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => setCurrentResult(item.result)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left text-xs text-slate-300 transition hover:border-indigo-400/60"
+                                        className="w-full text-left px-3 py-2 rounded-md text-xs text-slate-400 hover:bg-slate-800/50 transition truncate"
                                     >
-                                        <p className="font-semibold text-slate-200">{item.query}</p>
-                                        <p className="mt-1 text-[11px] text-slate-500">{new Date(item.timestamp).toLocaleString()}</p>
+                                        {item.query}
                                     </button>
                                 ))}
                             </div>
-                        </section>
-
-                        {showCrisisResources && (
-                            <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
-                                <h2 className="text-lg font-semibold text-amber-100">Crisis resources</h2>
-                                <p className="mt-2 text-sm text-amber-100">
-                                    If you or someone else is in danger, call local emergency services. In the U.S., call or text 988
-                                    for the Suicide & Crisis Lifeline, or text HOME to 741741 for the Crisis Text Line.
-                                </p>
-                            </section>
-                        )}
-                    </aside>
+                        </div>
+                    )}
                 </main>
             </div>
         </div>
