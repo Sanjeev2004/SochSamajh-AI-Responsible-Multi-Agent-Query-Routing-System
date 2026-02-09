@@ -2,9 +2,9 @@
 
 A **production-ready, safety-aware multi-agent AI system** that intelligently routes medical and legal queries to specialized agents while refusing unsafe requests. Built with LangGraph, Hugging Face, FastAPI, and React.
 
-## 🚀 Live Demo
+## Live Demo
 
-[**Try the App Here**](https://your-frontend-app.vercel.app) _(Replace with your Vercel URL)_
+[**Try the App Here**](https://mental-legal-router-188qew4tq-sanjeev2004s-projects.vercel.app/)
 
 ## Key Features
 
