@@ -2,6 +2,10 @@
 
 A **production-ready, safety-aware multi-agent AI system** that intelligently routes medical and legal queries to specialized agents while refusing unsafe requests. Built with LangGraph, Hugging Face, FastAPI, and React.
 
+## 🚀 Live Demo
+
+[**Try the App Here**](https://your-frontend-app.vercel.app) _(Replace with your Vercel URL)_
+
 ## Key Features
 
 **Safety-First Design** - Pre-screens for self-harm & illegal requests before processing  
@@ -22,7 +26,7 @@ User Question
     ↓
 [1] PRE-SCREEN (Check keywords)
     ├─→ Self-harm detected? → SAFETY AGENT → Crisis Resources
-    ├─→ Illegal intent detected? → SAFETY AGENT → Refusal  
+    ├─→ Illegal intent detected? → SAFETY AGENT → Refusal
     └─→ Safe to proceed ↓
 [2] CLASSIFIER (Detect domain + risk)
     ├─→ Domain: medical/legal/general/unknown
@@ -90,13 +94,13 @@ POST /api/route                          Response JSON
 
 ### Domain Detection (Keyword-Based)
 
-| Query | Keywords | Domain | Risk |
-|-------|----------|--------|------|
-| "What are symptoms of diabetes?" | diabetes, symptom | medical | low |
-| "What is a contract?" | contract, legal | legal | low |
-| "How do I bake bread?" | bread, bake | general | low |
-| "I want to kill myself" | kill, myself | medical | **HIGH** |
-| "How do I evade taxes?" | evade, taxes | legal | **HIGH** |
+| Query                            | Keywords          | Domain  | Risk     |
+| -------------------------------- | ----------------- | ------- | -------- |
+| "What are symptoms of diabetes?" | diabetes, symptom | medical | low      |
+| "What is a contract?"            | contract, legal   | legal   | low      |
+| "How do I bake bread?"           | bread, bake       | general | low      |
+| "I want to kill myself"          | kill, myself      | medical | **HIGH** |
+| "How do I evade taxes?"          | evade, taxes      | legal   | **HIGH** |
 
 ---
 
@@ -111,7 +115,7 @@ Before ANY LLM call, we scan for dangerous keywords:
 
 **If detected** → Immediately route to Safety Agent (no LLM call)
 
-### Step 2: Domain Classification  
+### Step 2: Domain Classification
 
 Keyword matching determines domain:
 
@@ -136,7 +140,7 @@ ELSE IF domain == "legal":
     → LEGAL AGENT (general concepts only)
 ELSE:
     → GENERAL AGENT (helpful response)
-    
+
 THEN: → FORMATTER (add disclaimers)
 ```
 
@@ -144,11 +148,11 @@ THEN: → FORMATTER (add disclaimers)
 
 ```
 Medical Query:
-"This is general educational information and not medical advice. 
+"This is general educational information and not medical advice.
 Please consult a qualified healthcare professional."
 
 Legal Query:
-"This is general legal information, not legal advice. 
+"This is general legal information, not legal advice.
 Laws vary by jurisdiction; consult a licensed attorney."
 ```
 
@@ -377,12 +381,12 @@ FRONTEND_ORIGIN=http://localhost:5173
 
 ## Safety Guarantees
 
-| Threat | Detection | Action |
-|--------|-----------|--------|
-| Self-harm/suicide | Pre-screen keywords | Safety Agent + 988 resources |
-| Illegal requests | Pre-screen keywords | Safety Agent + refusal |
-| Medical diagnosis | Domain classifier | Educational info only |
-| Legal advice | Domain classifier | General info only + disclaimer |
+| Threat            | Detection           | Action                         |
+| ----------------- | ------------------- | ------------------------------ |
+| Self-harm/suicide | Pre-screen keywords | Safety Agent + 988 resources   |
+| Illegal requests  | Pre-screen keywords | Safety Agent + refusal         |
+| Medical diagnosis | Domain classifier   | Educational info only          |
+| Legal advice      | Domain classifier   | General info only + disclaimer |
 
 ---
 
@@ -431,7 +435,7 @@ User: "What are symptoms of diabetes?"
 System Response:
   Domain: medical
   Risk: low
-  Response: "Common symptoms of diabetes include increased thirst, 
+  Response: "Common symptoms of diabetes include increased thirst,
             frequent urination, extreme hunger, unexplained weight loss..."
   Disclaimer: "Not medical advice. Consult a healthcare professional."
   Badges: [Medical] [Low Risk]
@@ -460,9 +464,9 @@ System Response:
   Domain: medical
   Risk: HIGH
   self_harm: TRUE
-  Response: "I'm sorry you're feeling this way. Please reach out to 
+  Response: "I'm sorry you're feeling this way. Please reach out to
             someone you trust or a professional right now."
-  Crisis Banner: 
+  Crisis Banner:
     "Call 911 | Call/text 988 | Text HOME to 741741"
   Badges: [Medical] [HIGH RISK] [Self-Harm Flag]
 ```
@@ -522,4 +526,3 @@ Copyright (c) 2026 Sanjeev Kumar
 **Built for safe, responsible AI**
 
 Questions? Issues? Open a GitHub issue!
-
