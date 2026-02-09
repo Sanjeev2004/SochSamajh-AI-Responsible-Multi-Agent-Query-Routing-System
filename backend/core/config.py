@@ -18,7 +18,7 @@ class Settings:
     langsmith_project: str | None
     langsmith_api_key: str | None
     langchain_endpoint: str | None
-    frontend_origin: str
+    backend_cors_origins: list[str]
 
 
     @staticmethod
@@ -28,7 +28,17 @@ class Settings:
         langsmith_project = os.getenv("LANGSMITH_PROJECT")
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
         langchain_endpoint = os.getenv("LANGCHAIN_ENDPOINT")
-        frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+        # Parse CORS origins - allow comma-separated string
+        cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "")
+        if cors_origins_str:
+            backend_cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+        else:
+            # Fallback to legacy FRONTEND_ORIGIN or default
+            backend_cors_origins = [os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")]
+
+        # Always ensure localhost:5173 is allowed for local dev if not present (optional, but good for safety)
+        if "http://localhost:5173" not in backend_cors_origins:
+            backend_cors_origins.append("http://localhost:5173")
 
         if not huggingface_api_token:
             logger.warning("HUGGINGFACEHUB_API_TOKEN is not set. API calls will fail until provided.")
@@ -47,5 +57,5 @@ class Settings:
             langsmith_project=langsmith_project,
             langsmith_api_key=langsmith_api_key,
             langchain_endpoint=langchain_endpoint,
-            frontend_origin=frontend_origin,
+            backend_cors_origins=backend_cors_origins,
         )
