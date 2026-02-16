@@ -21,19 +21,29 @@ COMMON_LEGAL_INFO = {
 @traceable(name="legal_agent")
 def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
-        client = OpenAI(api_key=settings.openai_api_key)
+        headers: dict[str, str] = {}
+        if settings.openrouter_site_url:
+            headers["HTTP-Referer"] = settings.openrouter_site_url
+        if settings.openrouter_app_name:
+            headers["X-Title"] = settings.openrouter_app_name
+
+        client = OpenAI(
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+            default_headers=headers or None,
+        )
 
         messages = [
             {
                 "role": "system",
-                "content": "You are a legal information assistant. Provide general, high-level information only. Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. Be concise and clear.",
+                "content": "You are a legal information assistant. Provide general, high-level information only. Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. Keep response short, readable, and plain text. Use simple bullet points when needed. Do not use markdown tables, heading markers, or pipe-separated formatting.",
             },
             {"role": "user", "content": query},
         ]
 
         response = client.chat.completions.create(
             messages=messages,
-            model=settings.openai_model,
+            model=settings.openrouter_model,
             max_tokens=512,
             temperature=0.2,
         )
@@ -64,3 +74,4 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
             disclaimers=[LEGAL_DISCLAIMER],
             safety_notes=[],
         )
+

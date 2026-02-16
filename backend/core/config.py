@@ -13,8 +13,11 @@ logger.setLevel(logging.INFO)
 
 @dataclass(frozen=True)
 class Settings:
-    openai_api_key: str
-    openai_model: str
+    openrouter_api_key: str
+    openrouter_model: str
+    openrouter_base_url: str
+    openrouter_site_url: str | None
+    openrouter_app_name: str | None
     langsmith_project: str | None
     langsmith_api_key: str | None
     langchain_endpoint: str | None
@@ -23,8 +26,11 @@ class Settings:
 
     @staticmethod
     def load() -> "Settings":
-        openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
-        openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+        openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        openrouter_model = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-20b:free").strip()
+        openrouter_base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip()
+        openrouter_site_url = os.getenv("OPENROUTER_SITE_URL", "").strip() or None
+        openrouter_app_name = os.getenv("OPENROUTER_APP_NAME", "").strip() or None
         langsmith_project = os.getenv("LANGSMITH_PROJECT")
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
         langchain_endpoint = os.getenv("LANGCHAIN_ENDPOINT")
@@ -40,8 +46,8 @@ class Settings:
         if "http://localhost:5173" not in backend_cors_origins:
             backend_cors_origins.append("http://localhost:5173")
 
-        if not openai_api_key:
-            logger.warning("OPENAI_API_KEY is not set. API calls will fail until provided.")
+        if not openrouter_api_key:
+            logger.warning("OPENROUTER_API_KEY is not set. API calls will fail until provided.")
 
         os.environ.setdefault("LANGCHAIN_TRACING_V2", os.getenv("LANGCHAIN_TRACING_V2", "true"))
         if langsmith_project:
@@ -52,8 +58,11 @@ class Settings:
             os.environ.setdefault("LANGCHAIN_ENDPOINT", langchain_endpoint)
 
         return Settings(
-            openai_api_key=openai_api_key,
-            openai_model=openai_model,
+            openrouter_api_key=openrouter_api_key,
+            openrouter_model=openrouter_model,
+            openrouter_base_url=openrouter_base_url,
+            openrouter_site_url=openrouter_site_url,
+            openrouter_app_name=openrouter_app_name,
             langsmith_project=langsmith_project,
             langsmith_api_key=langsmith_api_key,
             langchain_endpoint=langchain_endpoint,

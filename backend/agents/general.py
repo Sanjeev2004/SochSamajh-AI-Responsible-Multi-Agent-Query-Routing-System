@@ -16,19 +16,29 @@ COMMON_GENERAL_INFO = {
 @traceable(name="general_agent")
 def run_general_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
-        client = OpenAI(api_key=settings.openai_api_key)
+        headers: dict[str, str] = {}
+        if settings.openrouter_site_url:
+            headers["HTTP-Referer"] = settings.openrouter_site_url
+        if settings.openrouter_app_name:
+            headers["X-Title"] = settings.openrouter_app_name
+
+        client = OpenAI(
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+            default_headers=headers or None,
+        )
 
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful general assistant. Answer clearly and safely. If user asks for medical or legal advice, keep it general and encourage professional help.",
+                "content": "You are a helpful general assistant. Answer clearly and safely in plain text. Keep response compact and readable. Use simple bullet points when needed. Do not use markdown tables, heading markers, or pipe-separated formatting. If user asks for medical or legal advice, keep it general and encourage professional help.",
             },
             {"role": "user", "content": query},
         ]
 
         response = client.chat.completions.create(
             messages=messages,
-            model=settings.openai_model,
+            model=settings.openrouter_model,
             max_tokens=512,
             temperature=0.3,
         )
@@ -46,3 +56,4 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
             "general knowledge, and more."
         )
         return AgentResponse(content=fallback, disclaimers=[], safety_notes=[])
+

@@ -42,7 +42,7 @@ class RouteRequest(BaseModel):
 def health_check() -> dict:
     return {
         "status": "ok",
-        "model": settings.openai_model,
+        "model": settings.openrouter_model,
         "langsmith_project": settings.langsmith_project,
     }
 

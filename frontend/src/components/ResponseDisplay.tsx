@@ -24,7 +24,9 @@ export function ResponseDisplay({ result }: ResponseDisplayProps) {
                 <div className="relative rounded-xl bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur border border-slate-700/50 p-5 hover:border-indigo-500/30 transition-all duration-300">
                     <div className="flex items-start gap-3">
                         <Sparkles className="h-4 w-4 text-indigo-400 flex-shrink-0 mt-0.5 opacity-60" />
-                        <p className="text-sm leading-relaxed text-slate-100">{result.response}</p>
+                        <p className="text-sm leading-relaxed text-slate-100 whitespace-pre-wrap break-words">
+                            {result.response}
+                        </p>
                     </div>
                 </div>
             </div>

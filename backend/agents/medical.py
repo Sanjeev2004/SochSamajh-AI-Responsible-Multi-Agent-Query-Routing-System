@@ -19,19 +19,29 @@ COMMON_MEDICAL_INFO = {
 @traceable(name="medical_agent")
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
-        client = OpenAI(api_key=settings.openai_api_key)
+        headers: dict[str, str] = {}
+        if settings.openrouter_site_url:
+            headers["HTTP-Referer"] = settings.openrouter_site_url
+        if settings.openrouter_app_name:
+            headers["X-Title"] = settings.openrouter_app_name
+
+        client = OpenAI(
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+            default_headers=headers or None,
+        )
 
         messages = [
             {
                 "role": "system",
-                "content": "You are a medical information assistant. Provide educational, high-level information only. Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. Be concise and clear.",
+                "content": "You are a medical information assistant. Provide educational, high-level information only. Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. Keep response short, readable, and plain text. Use simple bullet points when needed. Do not use markdown tables, heading markers, or pipe-separated formatting.",
             },
             {"role": "user", "content": query},
         ]
 
         response = client.chat.completions.create(
             messages=messages,
-            model=settings.openai_model,
+            model=settings.openrouter_model,
             max_tokens=512,
             temperature=0.2,
         )
@@ -62,3 +72,4 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
         )
+

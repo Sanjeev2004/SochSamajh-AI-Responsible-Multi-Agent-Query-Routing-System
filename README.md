@@ -80,7 +80,7 @@ POST /api/route                          Response JSON
 â”‚  â”‚  â€¢ Safety (self-harm, illegal - REFUSAL)            â”‚    â”‚
 â”‚  â”‚  â€¢ Formatter (adds disclaimers)                      â”‚    â”‚
 â”‚  â”‚                                                      â”‚    â”‚
-â”‚  â”‚  Uses: OpenAI Chat Completions API                  â”‚    â”‚
+â”‚  â”‚  Uses: OpenRouter Chat Completions API                  â”‚    â”‚
 â”‚  â”‚  Falls back to: Pre-trained knowledge base          â”‚    â”‚
 â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â”‚
 â”‚                                                               â”‚
@@ -234,7 +234,7 @@ medical-legal-router/
 
 - Python 3.11+
 - Node.js 20+
-- OpenAI API Key (<https://platform.openai.com/api-keys>)
+- OpenRouter API Key (<https://openrouter.ai/keys>)
 
 ### Step 1: Backend Setup
 
@@ -244,7 +244,7 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\Activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env and add OPENAI_API_KEY
+# Edit .env and add OPENROUTER_API_KEY
 ```
 
 ### Step 2: Start Backend
@@ -319,8 +319,8 @@ Runs 10+ test cases covering:
 **backend/.env:**
 
 ```
-OPENAI_API_KEY=sk_xxxxx
-OPENAI_MODEL=gpt-4o-mini
+OPENROUTER_API_KEY=sk-or-v1_xxxxx
+OPENROUTER_MODEL=openai/gpt-oss-20b:free
 LANGSMITH_API_KEY=lsv2_xxxxx (optional)
 LANGSMITH_PROJECT=medical-legal-router (optional)
 LANGCHAIN_TRACING_V2=true
@@ -526,5 +526,6 @@ Copyright (c) 2026 Sanjeev Kumar
 **Built for safe, responsible AI**
 
 Questions? Issues? Open a GitHub issue!
+
 
 
