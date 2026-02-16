@@ -4,7 +4,7 @@ Safety-first multi-agent assistant that routes user questions to medical, legal,
 
 ## Live Demo
 
-- Frontend: <https://mental-legal-router-ii96dikha-sanjeev2004s-projects.vercel.app/>
+- Frontend: <https://soch-samajh-ai-responsible-multi-agent-query-routing-njfi3ht09.vercel.app/>
 
 ## What It Does
 
