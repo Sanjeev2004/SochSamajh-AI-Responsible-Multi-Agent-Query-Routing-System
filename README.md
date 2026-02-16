@@ -1,531 +1,186 @@
-﻿# SochSamajh AI â€“ Responsible Multi-Agent Query Routing System
+﻿# SochSamajh AI - Responsible Multi-Agent Query Router
 
-A **production-ready, safety-aware multi-agent AI system** that intelligently routes medical and legal queries to specialized agents while refusing unsafe requests. Built with LangGraph, Hugging Face, FastAPI, and React.
+Safety-first multi-agent assistant that routes user questions to medical, legal, general, or safety handling.
 
 ## Live Demo
 
-[**Try the App Here**](https://mental-legal-router-ii96dikha-sanjeev2004s-projects.vercel.app/)
+- Frontend: https://mental-legal-router-ii96dikha-sanjeev2004s-projects.vercel.app/
 
-## Key Features
+## What It Does
 
-**Safety-First Design** - Pre-screens for self-harm & illegal requests before processing  
-**Smart Routing** - Classifies queries into medical, legal, general domains  
-**Risk Assessment** - Detects low/medium/high risk queries automatically  
-**Educational Only** - Never provides medical diagnosis or definitive legal advice  
-**Crisis Resources** - Shows 988 Lifeline & Crisis Text Line for high-risk queries  
-**Fallback Intelligence** - Works even when LLM API fails (built-in knowledge base)  
-**Observable** - LangSmith tracing on all agent calls  
-**Modern UI** - React + TypeScript + Tailwind CSS frontend with response history
+- Pre-screens for self-harm and illegal intent before normal processing.
+- Classifies query domain and risk.
+- Routes to domain-specific agent (`medical`, `legal`, `general`, or `safety`).
+- Adds appropriate disclaimers.
+- Falls back to local canned knowledge if model/API fails.
 
----
+## Tech Stack
 
-## How It Works - System Flow
+- Backend: FastAPI, LangGraph, Pydantic, LangSmith (optional), OpenAI SDK
+- Model Provider: OpenRouter
+- Frontend: React, TypeScript, Vite, TailwindCSS
 
-```
-User Question
-    â†“
-[1] PRE-SCREEN (Check keywords)
-    â”œâ”€â†’ Self-harm detected? â†’ SAFETY AGENT â†’ Crisis Resources
-    â”œâ”€â†’ Illegal intent detected? â†’ SAFETY AGENT â†’ Refusal
-    â””â”€â†’ Safe to proceed â†“
-[2] CLASSIFIER (Detect domain + risk)
-    â”œâ”€â†’ Domain: medical/legal/general/unknown
-    â”œâ”€â†’ Risk: low/medium/high
-    â””â”€â†’ Route accordingly â†“
-[3] DOMAIN-SPECIFIC AGENT
-    â”œâ”€â†’ Medical Agent (educational symptoms/info)
-    â”œâ”€â†’ Legal Agent (general legal concepts)
-    â””â”€â†’ General Agent (other topics) â†“
-[4] FORMATTER (Add disclaimers)
-    â”œâ”€â†’ Medical: "Not medical advice, consult doctor"
-    â”œâ”€â†’ Legal: "Not legal advice, consult lawyer"
-    â””â”€â†’ Return formatted response â†“
-Frontend Shows Result with Badges & History
-```
+## Architecture Flow
 
----
+1. `pre_screen`: detect self-harm / illegal intent
+2. `classifier`: domain + risk
+3. `router`: choose `medical` / `legal` / `general` / `safety`
+4. `agent`: generate response
+5. `formatter`: clean response + disclaimers
 
-## System Architecture Diagram
+## Project Structure
 
-```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚         FRONTEND (React + TypeScript)                         â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”          â”‚
-â”‚  â”‚QueryInput   â”‚  â”‚Response  â”‚  â”‚ResponseHistory â”‚          â”‚
-â”‚  â”‚(textarea)   â”‚  â”‚(badges)  â”‚  â”‚(recent)        â”‚          â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â–²â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜          â”‚
-â”‚         â”‚                â”‚                                    â”‚
-â”‚         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                                    â”‚
-â”‚          Axios HTTP (localhost:5173)                         â”‚
-â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
-     â”‚                                                 â”‚
-     â†“                                                 â†‘
-POST /api/route                          Response JSON
-{query: "..."}                           with classification
-     â”‚                                                 â”‚
-â”Œâ”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”
-â”‚         BACKEND (FastAPI + LangGraph)                        â”‚
-â”‚            (localhost:8000)                                  â”‚
-â”‚                                                               â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”‚
-â”‚  â”‚        LangGraph State Machine Workflow              â”‚    â”‚
-â”‚  â”‚                                                      â”‚    â”‚
-â”‚  â”‚  Pre-Screen â†’ Classifier â†’ Router â†’ Agent â†’ Formatter
-â”‚  â”‚     (1)          (2)        (3)     (4)      (5)    â”‚    â”‚
-â”‚  â”‚                                                      â”‚    â”‚
-â”‚  â”‚  AGENTS with Fallback Responses:                    â”‚    â”‚
-â”‚  â”‚  â€¢ Medical (diabetes, fever, pain)                  â”‚    â”‚
-â”‚  â”‚  â€¢ Legal (contract, liability, lease)               â”‚    â”‚
-â”‚  â”‚  â€¢ General (cooking, coffee, pasta)                 â”‚    â”‚
-â”‚  â”‚  â€¢ Safety (self-harm, illegal - REFUSAL)            â”‚    â”‚
-â”‚  â”‚  â€¢ Formatter (adds disclaimers)                      â”‚    â”‚
-â”‚  â”‚                                                      â”‚    â”‚
-â”‚  â”‚  Uses: OpenRouter Chat Completions API                  â”‚    â”‚
-â”‚  â”‚  Falls back to: Pre-trained knowledge base          â”‚    â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â”‚
-â”‚                                                               â”‚
-â”‚  LangSmith: All calls traced via @traceable decorator       â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-```
-
----
-
-## Classification Examples
-
-### Domain Detection (Keyword-Based)
-
-| Query                            | Keywords          | Domain  | Risk     |
-| -------------------------------- | ----------------- | ------- | -------- |
-| "What are symptoms of diabetes?" | diabetes, symptom | medical | low      |
-| "What is a contract?"            | contract, legal   | legal   | low      |
-| "How do I bake bread?"           | bread, bake       | general | low      |
-| "I want to kill myself"          | kill, myself      | medical | **HIGH** |
-| "How do I evade taxes?"          | evade, taxes      | legal   | **HIGH** |
-
----
-
-## Safety Features Explained
-
-### Step 1: Pre-Screening (Keyword Check)
-
-Before ANY LLM call, we scan for dangerous keywords:
-
-- **Self-Harm**: "kill myself", "suicide", "hurt myself", "overdose"
-- **Illegal**: "evade taxes", "launder money", "forge", "blackmail"
-
-**If detected** â†’ Immediately route to Safety Agent (no LLM call)
-
-### Step 2: Domain Classification
-
-Keyword matching determines domain:
-
-- Medical keywords: "symptom", "diabetes", "pain", "fever"
-- Legal keywords: "contract", "lawsuit", "attorney", "court"
-- General: Everything else
-
-### Step 3: Risk Level Assessment
-
-- **HIGH RISK**: Contains dangerous keywords
-- **MEDIUM RISK**: Medical/legal question with concern words
-- **LOW RISK**: Normal educational question
-
-### Step 4: Conditional Routing
-
-```
-IF high_risk OR self_harm OR illegal_request:
-    â†’ SAFETY AGENT (compassionate refusal + resources)
-ELSE IF domain == "medical":
-    â†’ MEDICAL AGENT (educational info only)
-ELSE IF domain == "legal":
-    â†’ LEGAL AGENT (general concepts only)
-ELSE:
-    â†’ GENERAL AGENT (helpful response)
-
-THEN: â†’ FORMATTER (add disclaimers)
-```
-
-### Step 5: Disclaimers Added
-
-```
-Medical Query:
-"This is general educational information and not medical advice.
-Please consult a qualified healthcare professional."
-
-Legal Query:
-"This is general legal information, not legal advice.
-Laws vary by jurisdiction; consult a licensed attorney."
-```
-
-### Step 6: Crisis Resources (High-Risk)
-
-```
-If you or someone else is in danger:
-Call 911 (emergency)
-Call or text 988 (U.S. Suicide & Crisis Lifeline)
-Text HOME to 741741 (Crisis Text Line)
-```
-
----
-
-## Detailed Project Structure
-
-```
+```text
 medical-legal-router/
-â”‚
-â”œâ”€â”€ backend/                      # Python FastAPI Backend
-â”‚   â”œâ”€â”€ agents/                   # 5 Specialized Agents
-â”‚   â”‚   â”œâ”€â”€ classifier.py         # Pre-screen + domain/risk detection
-â”‚   â”‚   â”œâ”€â”€ medical.py            # Medical educational responses
-â”‚   â”‚   â”œâ”€â”€ legal.py              # Legal general information
-â”‚   â”‚   â”œâ”€â”€ general.py            # General queries
-â”‚   â”‚   â”œâ”€â”€ safety.py             # Self-harm/illegal refusal
-â”‚   â”‚   â””â”€â”€ formatter.py          # Add disclaimers
-â”‚   â”‚
-â”‚   â”œâ”€â”€ core/                     # Core Logic
-â”‚   â”‚   â”œâ”€â”€ config.py             # Settings, environment vars
-â”‚   â”‚   â”œâ”€â”€ state.py              # TypedDict for graph state
-â”‚   â”‚   â””â”€â”€ graph.py              # LangGraph StateGraph definition
-â”‚   â”‚
-â”‚   â”œâ”€â”€ api/                      # FastAPI Endpoints
-â”‚   â”‚   â””â”€â”€ main.py               # /api/route, /api/health
-â”‚   â”‚
-â”‚   â”œâ”€â”€ evaluation/               # Testing & Evaluation
-â”‚   â”‚   â”œâ”€â”€ test_cases.json       # 10+ test cases
-â”‚   â”‚   â””â”€â”€ run_eval.py           # Evaluation runner
-â”‚   â”‚
-â”‚   â”œâ”€â”€ requirements.txt          # Python dependencies
-â”‚   â”œâ”€â”€ .env.example              # Environment template
-â”‚   â””â”€â”€ Dockerfile                # Docker image
-â”‚
-â”œâ”€â”€ frontend/                     # React + TypeScript Frontend
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ components/           # React Components
-â”‚   â”‚   â”‚   â”œâ”€â”€ QueryInput.tsx    # Text area + submit
-â”‚   â”‚   â”‚   â”œâ”€â”€ ResponseDisplay.tsx # Response + badges + disclaimers
-â”‚   â”‚   â”‚   â”œâ”€â”€ SafetyBadge.tsx   # Visual indicators
-â”‚   â”‚   â”‚   â””â”€â”€ LoadingState.tsx  # Animated loading
-â”‚   â”‚   â”‚
-â”‚   â”‚   â”œâ”€â”€ hooks/
-â”‚   â”‚   â”‚   â””â”€â”€ useApi.ts         # Axios HTTP calls
-â”‚   â”‚   â”‚
-â”‚   â”‚   â”œâ”€â”€ types/
-â”‚   â”‚   â”‚   â””â”€â”€ index.ts          # TypeScript interfaces
-â”‚   â”‚   â”‚
-â”‚   â”‚   â”œâ”€â”€ App.tsx               # Main React app
-â”‚   â”‚   â”œâ”€â”€ main.tsx              # Entry point
-â”‚   â”‚   â””â”€â”€ index.css             # Tailwind CSS
-â”‚   â”‚
-â”‚   â”œâ”€â”€ package.json              # Node dependencies
-â”‚   â”œâ”€â”€ tsconfig.json             # TypeScript config
-â”‚   â”œâ”€â”€ vite.config.ts            # Vite build
-â”‚   â”œâ”€â”€ tailwind.config.cjs       # Tailwind CSS
-â”‚   â””â”€â”€ Dockerfile                # Docker image
-â”‚
-â”œâ”€â”€ docker-compose.yml            # Run both services
-â”œâ”€â”€ .gitignore                    # Git ignore
-â””â”€â”€ README.md                     # This file
+  backend/
+    agents/
+      classifier.py
+      medical.py
+      legal.py
+      general.py
+      safety.py
+      formatter.py
+    api/main.py
+    core/
+      config.py
+      graph.py
+      state.py
+    evaluation/
+      test_cases.json
+      run_eval.py
+    requirements.txt
+    .env.example
+  frontend/
+    src/
+    package.json
+  docker-compose.yml
 ```
 
----
-
-## Quick Start (5 Minutes)
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- OpenRouter API Key (<https://openrouter.ai/keys>)
-
-### Step 1: Backend Setup
+## Backend Setup
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\Activate
+venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env and add OPENROUTER_API_KEY
+copy .env.example .env
 ```
 
-### Step 2: Start Backend
+Set `backend/.env`:
+
+```env
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+OPENROUTER_MODEL=openai/gpt-oss-20b:free
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_SITE_URL=
+OPENROUTER_APP_NAME=medical-legal-router
+LANGCHAIN_TRACING_V2=true
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=medical-legal-router
+BACKEND_CORS_ORIGINS=http://localhost:5173
+```
+
+Run backend:
 
 ```bash
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-<http://localhost:8000/api/health>
+Health check:
 
-### Step 3: Frontend Setup (new terminal)
+- `http://localhost:8000/api/health`
+
+## Frontend Setup
 
 ```bash
 cd frontend
 npm install
-vite --host 0.0.0.0
 ```
 
-<http://localhost:5173>
+Run frontend:
 
-### Step 4: Test It
-
-Try these queries in the browser:
-
-**Medical Query:**
-
-```
-What are symptoms of diabetes?
-```
-
-â†’ Response: Diabetes symptoms + disclaimer
-
-**Legal Query:**
-
-```
-What is a contract?
-```
-
-â†’ Response: Contract definition + disclaimer
-
-**High-Risk Safety Test:**
-
-```
-I want to kill myself
-```
-
-â†’ Response: Compassionate refusal + 988 Lifeline resources
-
----
-
-## Evaluation
-
-Run test cases:
+- Normal command:
 
 ```bash
-cd backend
-python -m evaluation.run_eval
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-Runs 10+ test cases covering:
+- If your folder path contains `&` on Windows (like `Medical&LegalROUTER`), use:
 
-- Medical queries (low/high risk)
-- Legal queries (low/high risk)
-- General queries
-- Self-harm detection
-- Illegal request detection
-
----
-
-## Environment Variables
-
-**backend/.env:**
-
-```
-OPENROUTER_API_KEY=sk-or-v1_xxxxx
-OPENROUTER_MODEL=openai/gpt-oss-20b:free
-LANGSMITH_API_KEY=lsv2_xxxxx (optional)
-LANGSMITH_PROJECT=medical-legal-router (optional)
-LANGCHAIN_TRACING_V2=true
-FRONTEND_ORIGIN=http://localhost:5173
+```bash
+node .\node_modules\vite\bin\vite.js --host 0.0.0.0 --port 5173
 ```
 
----
+App URL:
 
-## API Response Format
+- `http://localhost:5173`
 
-### Success Response
+## API
+
+### `GET /api/health`
+
+Returns service status and active model.
+
+### `POST /api/route`
+
+Request:
 
 ```json
 {
-  "response": "Common symptoms of diabetes include...",
+  "query": "What are symptoms of diabetes?"
+}
+```
+
+Response (shape):
+
+```json
+{
+  "response": "...",
   "classification": {
     "domain": "medical",
     "risk_level": "low",
     "needs_disclaimer": true,
     "self_harm": false,
     "illegal_request": false,
-    "reasoning": "Keyword-based classification: domain=medical, risk=low"
+    "reasoning": "..."
   },
-  "disclaimers": [
-    "This is general educational information and not medical advice..."
-  ],
+  "disclaimers": ["..."],
   "safety_flags": {
     "self_harm": false,
     "illegal_request": false,
     "high_risk": false
   },
-  "request_id": "6b1fed6f-fd35-469b-bff4-7613fe52af32"
+  "request_id": "..."
 }
 ```
 
----
+## Evaluation
 
-## Technology Stack
-
-**Backend:**
-
-- FastAPI - Web framework
-- LangGraph - Agent orchestration
-- Hugging Face - LLM inference
-- Pydantic - Data validation
-- LangSmith - Tracing (optional)
-
-**Frontend:**
-
-- React 18 - UI
-- TypeScript - Type safety
-- Vite - Build tool
-- Tailwind CSS - Styling
-- Axios - HTTP client
-- Lucide React - Icons
-
----
-
-## Safety Guarantees
-
-| Threat            | Detection           | Action                         |
-| ----------------- | ------------------- | ------------------------------ |
-| Self-harm/suicide | Pre-screen keywords | Safety Agent + 988 resources   |
-| Illegal requests  | Pre-screen keywords | Safety Agent + refusal         |
-| Medical diagnosis | Domain classifier   | Educational info only          |
-| Legal advice      | Domain classifier   | General info only + disclaimer |
-
----
-
-## How Fallback Responses Work
-
-If Hugging Face API fails, system falls back to pre-trained knowledge:
-
-```python
-COMMON_MEDICAL_INFO = {
-    "diabetes": "Symptoms include increased thirst, frequent urination, extreme hunger...",
-    "fever": "Fever is a temporary increase in body temperature...",
-    "pain": "Pain is the body's warning signal..."
-}
-
-COMMON_LEGAL_INFO = {
-    "contract": "A contract is a legally binding agreement...",
-    "liability": "Liability refers to legal responsibility...",
-    "lease": "A lease is a contract granting use of property..."
-}
+```bash
+cd backend
+python -m evaluation.run_eval
 ```
 
-If query contains these keywords â†’ Use pre-trained response instead of API
-
----
-
-## Docker Deployment
+## Docker
 
 ```bash
 docker-compose up --build
 ```
 
-This runs:
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
 
-- Backend at <http://localhost:8000>
-- Frontend at <http://localhost:5173>
+## Safety Behavior
 
----
+- Self-harm intent -> safety response + crisis resources
+- Illegal intent -> refusal + lawful alternative guidance
+- Medical/legal outputs -> disclaimer-enforced educational info
 
-## Conversation Examples
+## Notes
 
-### Example 1: Medical Education
-
-```
-User: "What are symptoms of diabetes?"
-
-System Response:
-  Domain: medical
-  Risk: low
-  Response: "Common symptoms of diabetes include increased thirst,
-            frequent urination, extreme hunger, unexplained weight loss..."
-  Disclaimer: "Not medical advice. Consult a healthcare professional."
-  Badges: [Medical] [Low Risk]
-```
-
-### Example 2: Legal Information
-
-```
-User: "What is a contract?"
-
-System Response:
-  Domain: legal
-  Risk: low
-  Response: "A contract is a legally binding agreement between parties.
-            It requires offer, acceptance, consideration, mutual intent..."
-  Disclaimer: "Not legal advice. Laws vary by jurisdiction."
-  Badges: [Legal] [Low Risk]
-```
-
-### Example 3: Safety Intervention
-
-```
-User: "I want to hurt myself"
-
-System Response:
-  Domain: medical
-  Risk: HIGH
-  self_harm: TRUE
-  Response: "I'm sorry you're feeling this way. Please reach out to
-            someone you trust or a professional right now."
-  Crisis Banner:
-    "Call 911 | Call/text 988 | Text HOME to 741741"
-  Badges: [Medical] [HIGH RISK] [Self-Harm Flag]
-```
-
----
-
-## Performance
-
-- **Response Time**: <2 seconds
-- **Uptime**: 99.9% (with fallbacks, no LLM dependency)
-- **Safety Accuracy**: 100% for pre-screened keywords
-- **Knowledge Base Coverage**: ~95% for common queries
-
----
-
-## Educational Value
-
-This project demonstrates:
-
-- Multi-agent LLM orchestration (LangGraph)
-- Safety-critical AI systems design
-- State machine workflow patterns
-- Production React + TypeScript frontend
-- FastAPI backend best practices
-- Fallback strategies for reliability
-- Responsible AI considerations
-
----
+- Responses are cleaned in `backend/agents/formatter.py` to reduce markdown/table clutter.
+- If OpenRouter fails, fallback responses are used.
 
 ## License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-### MIT License Summary
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-- The Software is provided "AS IS", without warranty of any kind, express or implied.
-
-### Third-Party Licenses
-
-This project uses the following open-source libraries:
-
-- **LangGraph** - Apache 2.0 License
-- **FastAPI** - MIT License
-- **React** - MIT License
-- **Hugging Face Transformers** - Apache 2.0 License
-- **Tailwind CSS** - MIT License
-- **Axios** - MIT License
-- **Lucide React** - ISC License
-
-Copyright (c) 2026 Sanjeev Kumar
-
----
-
-**Built for safe, responsible AI**
-
-Questions? Issues? Open a GitHub issue!
-
-
-
+MIT (`LICENSE`)
