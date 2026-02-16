@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
-from huggingface_hub import InferenceClient
 from langsmith import traceable
+from openai import OpenAI
 
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
@@ -19,7 +19,7 @@ COMMON_MEDICAL_INFO = {
 @traceable(name="medical_agent")
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
-        client = InferenceClient(token=settings.huggingface_api_token)
+        client = OpenAI(api_key=settings.openai_api_key)
 
         messages = [
             {
@@ -29,15 +29,15 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             {"role": "user", "content": query},
         ]
 
-        response = client.chat_completion(
+        response = client.chat.completions.create(
             messages=messages,
-            model=settings.huggingface_model,
+            model=settings.openai_model,
             max_tokens=512,
             temperature=0.2,
         )
 
         return AgentResponse(
-            content=response.choices[0].message.content.strip(),
+            content=(response.choices[0].message.content or "").strip(),
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
         )

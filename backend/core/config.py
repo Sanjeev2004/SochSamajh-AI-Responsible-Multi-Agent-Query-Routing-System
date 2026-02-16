@@ -13,8 +13,8 @@ logger.setLevel(logging.INFO)
 
 @dataclass(frozen=True)
 class Settings:
-    huggingface_api_token: str
-    huggingface_model: str
+    openai_api_key: str
+    openai_model: str
     langsmith_project: str | None
     langsmith_api_key: str | None
     langchain_endpoint: str | None
@@ -23,8 +23,8 @@ class Settings:
 
     @staticmethod
     def load() -> "Settings":
-        huggingface_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN", "").strip()
-        huggingface_model = os.getenv("HUGGINGFACE_MODEL", "HuggingFaceH4/zephyr-7b-beta").strip()
+        openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
         langsmith_project = os.getenv("LANGSMITH_PROJECT")
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
         langchain_endpoint = os.getenv("LANGCHAIN_ENDPOINT")
@@ -40,8 +40,8 @@ class Settings:
         if "http://localhost:5173" not in backend_cors_origins:
             backend_cors_origins.append("http://localhost:5173")
 
-        if not huggingface_api_token:
-            logger.warning("HUGGINGFACEHUB_API_TOKEN is not set. API calls will fail until provided.")
+        if not openai_api_key:
+            logger.warning("OPENAI_API_KEY is not set. API calls will fail until provided.")
 
         os.environ.setdefault("LANGCHAIN_TRACING_V2", os.getenv("LANGCHAIN_TRACING_V2", "true"))
         if langsmith_project:
@@ -52,8 +52,8 @@ class Settings:
             os.environ.setdefault("LANGCHAIN_ENDPOINT", langchain_endpoint)
 
         return Settings(
-            huggingface_api_token=huggingface_api_token,
-            huggingface_model=huggingface_model,
+            openai_api_key=openai_api_key,
+            openai_model=openai_model,
             langsmith_project=langsmith_project,
             langsmith_api_key=langsmith_api_key,
             langchain_endpoint=langchain_endpoint,
