@@ -35,15 +35,15 @@ class Settings:
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
         langchain_endpoint = os.getenv("LANGCHAIN_ENDPOINT")
         # Parse CORS origins - allow comma-separated string
-        cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "")
+        cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "").strip()
         if cors_origins_str:
             backend_cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
         else:
-            # Fallback to legacy FRONTEND_ORIGIN or default
-            backend_cors_origins = [os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")]
+            # Default to allow all origins when not specified.
+            backend_cors_origins = ["*"]
 
-        # Always ensure localhost:5173 is allowed for local dev if not present (optional, but good for safety)
-        if "http://localhost:5173" not in backend_cors_origins:
+        # Ensure localhost is allowed for local dev unless using wildcard.
+        if "*" not in backend_cors_origins and "http://localhost:5173" not in backend_cors_origins:
             backend_cors_origins.append("http://localhost:5173")
 
         if not openrouter_api_key:
