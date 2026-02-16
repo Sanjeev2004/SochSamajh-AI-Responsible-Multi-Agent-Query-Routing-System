@@ -77,17 +77,18 @@ def formatter_node(state: GraphState) -> GraphState:
 
 def route_after_pre_screen(state: GraphState) -> str:
     classification = state.get("classification")
-    # Pre-screen has highest priority for safety. If any high-risk signal is found,
-    # bypass the LLM classifier to avoid unsafe handling.
-    if classification and (classification.self_harm or classification.illegal_request or classification.risk_level == "high"):
+    # Pre-screen should only short-circuit for explicit disallowed intent.
+    if classification and (classification.self_harm or classification.illegal_request):
         return "safety"
     return "classifier"
 
 
 def route_after_classification(state: GraphState) -> str:
     classification = state["classification"]
-    # Safety-first routing: any high-risk or disallowed intent goes directly to Safety Agent.
-    if classification.self_harm or classification.illegal_request or classification.risk_level == "high":
+    # Safety agent is reserved for explicit self-harm/illegal intent.
+    # High-risk medical/legal questions still go to domain agents so the user
+    # gets actionable educational guidance plus warnings.
+    if classification.self_harm or classification.illegal_request:
         return "safety"
     # Domain routing based on structured classifier output.
     if classification.domain == "medical":

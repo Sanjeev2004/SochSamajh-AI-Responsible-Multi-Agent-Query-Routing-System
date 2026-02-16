@@ -68,7 +68,24 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     query_lower = query.lower()
 
     # Detect domain
-    medical_keywords = ["symptom", "diabetes", "pain", "fever", "treatment", "disease", "health", "doctor", "medicine", "sick"]
+    medical_keywords = [
+        "symptom",
+        "diabetes",
+        "pain",
+        "fever",
+        "treatment",
+        "disease",
+        "health",
+        "doctor",
+        "medicine",
+        "sick",
+        "hurt",
+        "tummy",
+        "stomach",
+        "abdomen",
+        "nausea",
+        "vomit",
+    ]
     legal_keywords = ["contract", "lawsuit", "law", "legal", "attorney", "court", "liability", "jurisdiction", "rights"]
 
     has_medical = any(kw in query_lower for kw in medical_keywords)
@@ -84,7 +101,20 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         domain = "general"
 
     # Detect risk level
-    high_risk_keywords = ["kill", "die", "suicide", "hurt", "harm", "emergency", "urgent", "severe", "chest pain", "blood"]
+    high_risk_keywords = [
+        "chest pain",
+        "difficulty breathing",
+        "can't breathe",
+        "cannot breathe",
+        "severe bleeding",
+        "coughing blood",
+        "blood in vomit",
+        "blood in stool",
+        "passed out",
+        "unconscious",
+        "stroke",
+        "heart attack",
+    ]
     medium_risk_keywords = ["pain", "sick", "worried", "concerned", "problem"]
 
     has_high_risk = any(kw in query_lower for kw in high_risk_keywords)
