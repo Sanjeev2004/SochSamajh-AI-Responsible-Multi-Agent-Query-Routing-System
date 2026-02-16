@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable
-from huggingface_hub import InferenceClient
 from langsmith import traceable
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 
 from core.config import Settings, logger
 from core.state import ClassificationOutput
@@ -69,14 +66,14 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
 def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     # Simple keyword-based classification for reliability
     query_lower = query.lower()
-    
+
     # Detect domain
     medical_keywords = ["symptom", "diabetes", "pain", "fever", "treatment", "disease", "health", "doctor", "medicine", "sick"]
     legal_keywords = ["contract", "lawsuit", "law", "legal", "attorney", "court", "liability", "jurisdiction", "rights"]
-    
+
     has_medical = any(kw in query_lower for kw in medical_keywords)
     has_legal = any(kw in query_lower for kw in legal_keywords)
-    
+
     if has_medical:
         domain = "medical"
     elif has_legal:
@@ -85,25 +82,25 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         domain = "unknown"
     else:
         domain = "general"
-    
+
     # Detect risk level
     high_risk_keywords = ["kill", "die", "suicide", "hurt", "harm", "emergency", "urgent", "severe", "chest pain", "blood"]
     medium_risk_keywords = ["pain", "sick", "worried", "concerned", "problem"]
-    
+
     has_high_risk = any(kw in query_lower for kw in high_risk_keywords)
     has_medium_risk = any(kw in query_lower for kw in medium_risk_keywords)
-    
+
     if has_high_risk:
         risk_level = "high"
     elif has_medium_risk:
         risk_level = "medium"
     else:
         risk_level = "low"
-    
+
     # Needs disclaimer
     needs_disclaimer = domain in ["medical", "legal"]
-    
-    return ClassificationOutput(
+
+    result = ClassificationOutput(
         domain=domain,
         risk_level=risk_level,
         needs_disclaimer=needs_disclaimer,

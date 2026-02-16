@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.config import Settings, logger
 from core.graph import run_router
@@ -21,13 +21,21 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.backend_cors_origins,
     allow_credentials=allow_credentials,
-    allow_methods=["*"] ,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 class RouteRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, value: str) -> str:
+        trimmed = value.strip()
+        if not trimmed:
+            raise ValueError("Query must not be empty.")
+        return trimmed
 
 
 @app.get("/api/health")
