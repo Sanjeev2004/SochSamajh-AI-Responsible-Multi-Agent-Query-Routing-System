@@ -4,7 +4,7 @@ Safety-first multi-agent assistant that routes user questions to medical, legal,
 
 ## Live Demo
 
-- Frontend: https://mental-legal-router-ii96dikha-sanjeev2004s-projects.vercel.app/
+- Frontend: <https://mental-legal-router-ii96dikha-sanjeev2004s-projects.vercel.app/>
 
 ## What It Does
 
@@ -60,9 +60,16 @@ medical-legal-router/
 
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+\.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+If you are using Command Prompt instead of PowerShell, run:
+
+```bash
+.\.venv\Scripts\activate.bat
 copy .env.example .env
 ```
 
