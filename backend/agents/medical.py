@@ -1,66 +1,37 @@
 ﻿from __future__ import annotations
 
 from langsmith import traceable
-from openai import OpenAI
 
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
+from agents.base import call_llm
 
 MEDICAL_DISCLAIMER = "This is general educational information and not medical advice. Please consult a qualified healthcare professional."
-
-COMMON_MEDICAL_INFO = {
-    "diabetes": "Common symptoms of diabetes include increased thirst, frequent urination, extreme hunger, unexplained weight loss, fatigue, blurred vision, slow-healing sores, and frequent infections. Type 1 diabetes symptoms often develop quickly, while Type 2 symptoms develop more gradually. If you experience these symptoms, consult a healthcare provider for proper diagnosis and blood sugar testing.",
-    "fever": "Fever is a temporary increase in body temperature, often due to illness. Normal body temperature is around 98.6 F (37 C). Common causes include infections (viral or bacterial), heat exhaustion, certain medications, and inflammatory conditions. Seek medical attention if fever exceeds 103 F (39.4 C), lasts more than 3 days, or is accompanied by severe symptoms.",
-    "headache": "Headaches can be tension-type (most common), migraines, cluster headaches, or secondary to other conditions. Common triggers include stress, dehydration, poor posture, eye strain, and lack of sleep. Most headaches are not serious, but seek immediate medical care for sudden severe headaches, headaches with fever or stiff neck, or headaches after head injury.",
-    "pain": "Pain is the body's warning signal. Acute pain comes on suddenly and is usually sharp; chronic pain persists over time. Management depends on the cause and may include rest, ice/heat, over-the-counter pain relievers, physical therapy, or prescription medications. Always consult a healthcare provider for persistent or severe pain.",
-}
 
 
 @traceable(name="medical_agent")
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
-        headers: dict[str, str] = {}
-        if settings.openrouter_site_url:
-            headers["HTTP-Referer"] = settings.openrouter_site_url
-        if settings.openrouter_app_name:
-            headers["X-Title"] = settings.openrouter_app_name
-
-        client = OpenAI(
-            api_key=settings.openrouter_api_key,
-            base_url=settings.openrouter_base_url,
-            default_headers=headers or None,
+        system_prompt = (
+            "You are a medical information assistant. Provide educational, high-level information only. "
+            "Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. "
+            "Keep response short, readable, and plain text. Use simple bullet points when needed. "
+            "Do not use markdown tables, heading markers, or pipe-separated formatting."
         )
 
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a medical information assistant. Provide educational, high-level information only. Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. Keep response short, readable, and plain text. Use simple bullet points when needed. Do not use markdown tables, heading markers, or pipe-separated formatting.",
-            },
-            {"role": "user", "content": query},
-        ]
-
-        response = client.chat.completions.create(
-            messages=messages,
-            model=settings.openrouter_model,
-            max_tokens=512,
-            temperature=0.2,
+        content = call_llm(
+            query=query,
+            system_prompt=system_prompt,
+            settings=settings,
+            temperature=0.2
         )
 
         return AgentResponse(
-            content=(response.choices[0].message.content or "").strip(),
+            content=content,
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
         )
     except Exception:
-        query_lower = query.lower()
-        for topic, info in COMMON_MEDICAL_INFO.items():
-            if topic in query_lower:
-                return AgentResponse(
-                    content=info,
-                    disclaimers=[MEDICAL_DISCLAIMER],
-                    safety_notes=[],
-                )
-
         fallback = (
             "I can provide general educational information about medical topics. For specific health concerns, "
             "including symptoms, diagnosis, or treatment, please consult with a qualified healthcare professional "
@@ -72,4 +43,3 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
         )
-

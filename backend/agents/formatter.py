@@ -6,19 +6,22 @@ from langsmith import traceable
 
 from core.state import AgentResponse, ClassificationOutput
 
+MARKDOWN_HEADING_RE = re.compile(r"^#{1,6}\s*", re.MULTILINE)
+EXCESS_BLANK_LINES_RE = re.compile(r"\n{3,}")
+TABLE_SEPARATOR_RE = re.compile(r"\|?[\s:\-]+(\|[\s:\-]+)+\|?")
 
 def _clean_markdown_noise(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
     replacements = {
-        "â": "-",
-        "â": "-",
-        "â": "-",
-        "â": "'",
-        "â": "'",
-        "â": '"',
-        "â": '"',
-        "â¦": "...",
-        "â¯": " ",
+        "â€”": "-",
+        "â€“": "-",
+        "â€‘": "-",
+        "â€™": "'",
+        "â€˜": "'",
+        "â€œ": '"',
+        "â€ ": '"',
+        "â€¦": "...",
+        "â€¯": " ",
         "Â½": "1/2",
         "Â°F": " F",
         "Â°C": " C",
@@ -36,12 +39,12 @@ def _clean_markdown_noise(text: str) -> str:
             continue
 
         # Remove markdown heading markers.
-        line = re.sub(r"^#{1,6}\s*", "", line)
+        line = MARKDOWN_HEADING_RE.sub("", line)
         # Remove bold/italic/code markers.
         line = line.replace("**", "").replace("__", "").replace("`", "")
 
         # Drop pure markdown table separator rows like |---|---|
-        if re.fullmatch(r"\|?[\s:\-]+(\|[\s:\-]+)+\|?", line):
+        if TABLE_SEPARATOR_RE.fullmatch(line):
             continue
 
         # Convert pipe-delimited table rows into readable sentence fragments.
@@ -54,7 +57,7 @@ def _clean_markdown_noise(text: str) -> str:
 
     cleaned = "\n".join(cleaned_lines)
     # Limit excess blank lines.
-    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = EXCESS_BLANK_LINES_RE.sub("\n\n", cleaned)
     return cleaned.strip()
 
 
