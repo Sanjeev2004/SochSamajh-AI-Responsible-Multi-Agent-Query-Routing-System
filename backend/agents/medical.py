@@ -5,6 +5,7 @@ from langsmith import traceable
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
+from agents.retriever import retrieve_context
 
 MEDICAL_DISCLAIMER = "This is general educational information and not medical advice. Please consult a qualified healthcare professional."
 
@@ -12,9 +13,15 @@ MEDICAL_DISCLAIMER = "This is general educational information and not medical ad
 @traceable(name="medical_agent")
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
+        # 1. Retrieve Context
+        context = retrieve_context(query, domain="medical")
+
+        # 2. Augment Prompt
         system_prompt = (
             "You are a medical information assistant. Provide educational, high-level information only. "
             "Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. "
+            "Use the provided context to answer if relevant. If the context is not relevant, ignore it. "
+            f"\n\nContext:\n{context}\n\n"
             "Keep response short, readable, and plain text. Use simple bullet points when needed. "
             "Do not use markdown tables, heading markers, or pipe-separated formatting."
         )

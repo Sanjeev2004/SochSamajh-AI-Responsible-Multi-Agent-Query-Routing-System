@@ -5,6 +5,7 @@ from langsmith import traceable
 
 from core.config import Settings, logger
 from core.state import ClassificationOutput
+from agents.router_semantic import semantic_router
 
 SELF_HARM_KEYWORDS = frozenset([
     "kill myself",
@@ -137,22 +138,16 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
       3. Need for disclaimers
       4. Self-harm and illegal intent indicators
       
-    Uses keyword-based heuristics for reliability and consistency.
+    Uses a hybrid approach:
+    1. Fast keyword matching (high precision)
+    2. Semantic embedding search (fallback for high recall)
     
     Args:
         query: The user's query string
-        settings: Application settings (for future LLM-based classification)
+        settings: Application settings
         
     Returns:
         ClassificationOutput with comprehensive classification results
-        
-    Examples:
-        >>> query = "What are symptoms of diabetes?"
-        >>> result = classify_intent(query, settings)
-        >>> result.domain
-        'medical'
-        >>> result.risk_level
-        'low'
     """
     # Simple keyword-based classification for reliability
     query_lower = query.lower()
@@ -161,13 +156,28 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     has_medical = any(kw in query_lower for kw in MEDICAL_KEYWORDS)
     has_legal = any(kw in query_lower for kw in LEGAL_KEYWORDS)
 
+    domain = None
+    reasoning = "Keyword-based classification"
+
     if has_medical:
         domain = "medical"
     elif has_legal:
         domain = "legal"
     elif len(query.strip()) < 10:
         domain = "unknown"
-    else:
+        
+    # Hybrid Fallback: Use Semantic Router if keyword match is weak
+    if not domain or domain == "unknown" or (not has_medical and not has_legal):
+        logger.info("Keyword match inconclusive. Attempting semantic routing...")
+        semantic_domain = semantic_router.predict(query)
+        if semantic_domain:
+            domain = semantic_domain
+            reasoning = f"Semantic routing (embedding similarity). Initial keyword result was inconclusive."
+        elif not domain:
+             domain = "general"
+
+    # Default to general if still nothing
+    if not domain:
         domain = "general"
 
     # Detect risk level
@@ -190,7 +200,7 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         needs_disclaimer=needs_disclaimer,
         self_harm=_contains_any(query, SELF_HARM_KEYWORDS),
         illegal_request=_contains_any(query, ILLEGAL_KEYWORDS),
-        reasoning=f"Keyword-based classification: domain={domain}, risk={risk_level}",
+        reasoning=f"{reasoning}: domain={domain}, risk={risk_level}",
     )
 
     if result.domain == "general" and _contains_any(query, MEDICAL_HINTS | LEGAL_HINTS):

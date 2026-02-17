@@ -9,6 +9,7 @@ from agents.legal import run_legal_agent
 from agents.medical import run_medical_agent
 from agents.safety import run_safety_agent
 from agents.formatter import run_formatter
+from agents.critic import run_critic
 from core.config import Settings, logger
 from core.state import GraphState, SafetyFlags
 
@@ -69,6 +70,12 @@ def safety_node(state: GraphState) -> GraphState:
     return state
 
 
+def critic_node(state: GraphState) -> GraphState:
+    response = run_critic(state["response"], state["classification"], state["query"])
+    state["response"] = response
+    return state
+
+
 def formatter_node(state: GraphState) -> GraphState:
     response = run_formatter(state["response"], state["classification"])
     state["response"] = response
@@ -106,15 +113,19 @@ def build_graph() -> StateGraph:
     graph.add_node("legal", legal_node)
     graph.add_node("general", general_node)
     graph.add_node("safety", safety_node)
+    graph.add_node("critic", critic_node)
     graph.add_node("formatter", formatter_node)
 
     graph.set_entry_point("pre_screen")
     graph.add_conditional_edges("pre_screen", route_after_pre_screen)
     graph.add_conditional_edges("classifier", route_after_classification)
 
-    graph.add_edge("medical", "formatter")
-    graph.add_edge("legal", "formatter")
-    graph.add_edge("general", "formatter")
+    # Route domain agents through critic first, then formatter
+    graph.add_edge("medical", "critic")
+    graph.add_edge("legal", "critic")
+    graph.add_edge("general", "critic")
+    
+    graph.add_edge("critic", "formatter")
     graph.add_edge("formatter", END)
     graph.add_edge("safety", END)
 

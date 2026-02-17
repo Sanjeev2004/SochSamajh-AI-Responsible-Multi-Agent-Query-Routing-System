@@ -5,6 +5,7 @@ from langsmith import traceable
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
+from agents.retriever import retrieve_context
 
 LEGAL_DISCLAIMER = (
     "This is general legal information, not legal advice. Laws vary by jurisdiction; consult a licensed attorney."
@@ -14,9 +15,15 @@ LEGAL_DISCLAIMER = (
 @traceable(name="legal_agent")
 def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
+        # 1. Retrieve Context
+        context = retrieve_context(query, domain="legal")
+
+        # 2. Augment Prompt with retrieved context
         system_prompt = (
             "You are a legal information assistant. Provide general, high-level information only. "
             "Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. "
+            "Use the provided context to answer if relevant. If the context is not relevant, ignore it. "
+            f"\n\nContext:\n{context}\n\n"
             "Keep response short, readable, and plain text. Use simple bullet points when needed. "
             "Do not use markdown tables, heading markers, or pipe-separated formatting."
         )

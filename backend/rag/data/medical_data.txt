@@ -1,0 +1,5 @@
+Dr. John Smith, M.D. - Type 2 Diabetes Management
+"Type 2 diabetes is a chronic condition affecting the way the body processes blood sugar (glucose). Symptoms include increased thirst, frequent urination, hunger, fatigue, and blurred vision. Treatment often involves lifestyle changes such as diet and exercise, and potentially medication like Metformin or insulin therapy."
+
+Dr. Emily Chen, M.D. - Migraine and Headaches
+"Migraines are severe headaches often accompanied by nausea, vomiting, and sensitivity to light and sound. Triggers can include stress, certain foods, and hormonal changes. Over-the-counter pain relievers (NSAIDs) can help, but prescription triptans are often needed for severe cases. Rest in a dark, quiet room is recommended."
