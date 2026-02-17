@@ -5,7 +5,7 @@ from langsmith import traceable
 
 from core.config import Settings, logger
 from core.state import ClassificationOutput
-from agents.router_semantic import semantic_router
+# from agents.router_semantic import semantic_router  # Temporarily disabled
 
 SELF_HARM_KEYWORDS = frozenset([
     "kill myself",
@@ -168,12 +168,13 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         
     # Hybrid Fallback: Use Semantic Router if keyword match is weak
     if not domain or domain == "unknown" or (not has_medical and not has_legal):
-        logger.info("Keyword match inconclusive. Attempting semantic routing...")
-        semantic_domain = semantic_router.predict(query)
-        if semantic_domain:
-            domain = semantic_domain
-            reasoning = f"Semantic routing (embedding similarity). Initial keyword result was inconclusive."
-        elif not domain:
+        logger.info("Keyword match inconclusive. Semantic routing temporarily disabled.")
+        # semantic_domain = semantic_router.predict(query)  # Temporarily disabled
+        # if semantic_domain:
+        #     domain = semantic_domain
+        #     reasoning = f"Semantic routing (embedding similarity). Initial keyword result was inconclusive."
+        # elif not domain:
+        if not domain:
              domain = "general"
 
     # Default to general if still nothing

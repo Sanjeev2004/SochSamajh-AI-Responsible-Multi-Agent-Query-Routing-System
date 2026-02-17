@@ -49,8 +49,10 @@ class Retriever:
                 
         return "\n\n".join(context_parts)
 
-# Singleton
-retriever = Retriever()
+# Singleton - Temporarily disabled due to sentence-transformers error
+# retriever = Retriever()
 
 def retrieve_context(query: str, domain: str = None) -> str:
-    return retriever.get_relevant_context(query, domain)
+    # Temporarily disabled - return empty context
+    return ""
+

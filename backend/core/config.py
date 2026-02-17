@@ -79,8 +79,11 @@ class Settings:
             backend_cors_origins = ["*"]
 
         # Ensure localhost is allowed for local dev unless using wildcard.
-        if "*" not in backend_cors_origins and "http://localhost:5173" not in backend_cors_origins:
-            backend_cors_origins.append("http://localhost:5173")
+        dev_origins = ["http://localhost:5173", "http://localhost:5174"]
+        if "*" not in backend_cors_origins:
+            for origin in dev_origins:
+                if origin not in backend_cors_origins:
+                    backend_cors_origins.append(origin)
 
         if not openai_api_key:
             logger.warning("OPENAI_API_KEY is not set. API calls will fail until provided.")

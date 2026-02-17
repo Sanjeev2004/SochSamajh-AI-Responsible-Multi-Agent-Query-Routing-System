@@ -1,9 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { getHealth, routeQuery } from "./hooks/useApi";
+import { getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
 import { HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
 import { ResponseDisplay } from "./components/ResponseDisplay";
 import { LoadingState } from "./components/LoadingState";
+import { ThumbsUp, ThumbsDown, CheckCircle } from "lucide-react";
 
 export default function App() {
     const [health, setHealth] = useState<{ status: string; model: string } | null>(null);
@@ -11,6 +12,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [currentResult, setCurrentResult] = useState<RouterResponse | null>(null);
     const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
 
     useEffect(() => {
         let mounted = true;
@@ -30,6 +32,7 @@ export default function App() {
     async function handleSubmit(query: string) {
         setError(null);
         setLoading(true);
+        setFeedbackSent(false);
         try {
             const result = await routeQuery(query);
             setCurrentResult(result);
@@ -46,6 +49,16 @@ export default function App() {
             setError("Unable to process the request. Please try again.");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleFeedback(rating: "up" | "down") {
+        if (!currentResult || feedbackSent) return;
+        try {
+            await sendFeedback(currentResult.request_id, history[0]?.query || "", currentResult.response, rating);
+            setFeedbackSent(true);
+        } catch (e) {
+            console.error("Failed to send feedback", e);
         }
     }
 
@@ -97,7 +110,39 @@ export default function App() {
 
                     {loading && <LoadingState />}
 
-                    {currentResult && !loading && <ResponseDisplay result={currentResult} />}
+                    {currentResult && !loading && (
+                        <div className="space-y-4">
+                            <ResponseDisplay result={currentResult} />
+                            
+                            {/* Feedback Section */}
+                            <div className="flex items-center justify-end gap-2 fade-in slide-in-from-bottom-2 duration-500">
+                                <span className="text-xs text-slate-500 mr-2">Was this helpful?</span>
+                                {feedbackSent ? (
+                                    <span className="flex items-center text-xs text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full border border-emerald-400/20">
+                                        <CheckCircle className="w-3 h-3 mr-1.5" />
+                                        Feedback Sent
+                                    </span>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={() => handleFeedback("up")}
+                                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                                            title="Helpful"
+                                        >
+                                            <ThumbsUp className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleFeedback("down")}
+                                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
+                                            title="Not Helpful"
+                                        >
+                                            <ThumbsDown className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {showCrisisResources && (
                         <div className="rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-500/10 backdrop-blur border border-amber-500/30 p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -117,7 +162,10 @@ export default function App() {
                                 {history.map((item, idx) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => setCurrentResult(item.result)}
+                                        onClick={() => {
+                                            setCurrentResult(item.result);
+                                            setFeedbackSent(false); // Reset feedback state for history recall
+                                        }}
                                         className="group w-full text-left px-4 py-3 rounded-lg bg-gradient-to-r from-slate-800/50 to-slate-800/20 hover:from-indigo-500/20 hover:to-violet-500/20 border border-slate-700/50 hover:border-indigo-500/30 transition-all duration-300 transform hover:translate-x-1"
                                     >
                                         <p className="text-sm text-slate-200 group-hover:text-indigo-300 transition line-clamp-2">
@@ -137,3 +185,4 @@ export default function App() {
         </div>
     );
 }
+

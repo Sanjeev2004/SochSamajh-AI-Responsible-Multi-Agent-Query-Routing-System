@@ -7,10 +7,13 @@ from pydantic import BaseModel, Field, field_validator
 from core.config import Settings, logger
 from core.graph import run_router
 from core.state import RouterResponse
+from api.feedback import router as feedback_router
 
 settings = Settings.load()
 
 app = FastAPI(title="Medical and Legal Query Router", version="1.0.0")
+
+app.include_router(feedback_router)
 
 # Handle wildcard origins for CORS
 allow_credentials = True
