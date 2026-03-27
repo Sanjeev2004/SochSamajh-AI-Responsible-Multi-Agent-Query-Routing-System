@@ -88,7 +88,10 @@ class Settings:
         if not openai_api_key:
             logger.warning("OPENAI_API_KEY is not set. API calls will fail until provided.")
 
-        os.environ.setdefault("LANGCHAIN_TRACING_V2", os.getenv("LANGCHAIN_TRACING_V2", "true"))
+        tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2")
+        if tracing_enabled is None:
+            tracing_enabled = "true" if langsmith_api_key else "false"
+        os.environ.setdefault("LANGCHAIN_TRACING_V2", tracing_enabled)
         if langsmith_project:
             os.environ.setdefault("LANGSMITH_PROJECT", langsmith_project)
         if langsmith_api_key:

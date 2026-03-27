@@ -14,6 +14,11 @@ export default function App() {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
 
+    const currentHistoryItem = useMemo(() => {
+        if (!currentResult) return null;
+        return history.find((item) => item.id === currentResult.request_id) ?? null;
+    }, [currentResult, history]);
+
     useEffect(() => {
         let mounted = true;
         const fetchHealth = () =>
@@ -34,7 +39,7 @@ export default function App() {
         setLoading(true);
         setFeedbackSent(false);
         try {
-            const result = await routeQuery(query);
+            const result: RouterResponse = await routeQuery(query);
             setCurrentResult(result);
             setHistory((prev) => [
                 {
@@ -55,7 +60,12 @@ export default function App() {
     async function handleFeedback(rating: "up" | "down") {
         if (!currentResult || feedbackSent) return;
         try {
-            await sendFeedback(currentResult.request_id, history[0]?.query || "", currentResult.response, rating);
+            await sendFeedback(
+                currentResult.request_id,
+                currentHistoryItem?.query || "",
+                currentResult.response,
+                rating
+            );
             setFeedbackSent(true);
         } catch (e) {
             console.error("Failed to send feedback", e);
@@ -185,4 +195,3 @@ export default function App() {
         </div>
     );
 }
-

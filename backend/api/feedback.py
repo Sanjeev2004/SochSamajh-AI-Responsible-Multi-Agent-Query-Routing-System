@@ -1,44 +1,71 @@
+from __future__ import annotations
+
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-import json
-import os
-from datetime import datetime
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
-FEEDBACK_FILE = "data/feedback.json"
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+DB_PATH = DATA_DIR / "feedback.sqlite3"
 
-# Ensure data directory exists
-os.makedirs(os.path.dirname(FEEDBACK_FILE), exist_ok=True)
+
+def _ensure_db() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                request_id TEXT NOT NULL,
+                query_text TEXT NOT NULL,
+                response_text TEXT NOT NULL,
+                rating TEXT NOT NULL CHECK (rating IN ('up', 'down'))
+            )
+            """
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_feedback_request_id ON feedback(request_id)"
+        )
+        connection.commit()
+
+
+_ensure_db()
+
 
 class FeedbackRequest(BaseModel):
-    query: str
-    response: str
-    rating: str  # "up" or "down"
-    request_id: str
+    query: str = Field(min_length=1, max_length=4000)
+    response: str = Field(min_length=1, max_length=12000)
+    rating: Literal["up", "down"]
+    request_id: str = Field(min_length=1, max_length=128)
+
 
 @router.post("/api/feedback")
-async def submit_feedback(feedback: FeedbackRequest):
-    entry = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "request_id": feedback.request_id,
-        "query": feedback.query,
-        "response": feedback.response,
-        "rating": feedback.rating
-    }
-    
-    # Simple append to JSON list (not efficient for production, but good for research prototype)
-    data = []
-    if os.path.exists(FEEDBACK_FILE):
-        try:
-            with open(FEEDBACK_FILE, "r") as f:
-                data = json.load(f)
-        except json.JSONDecodeError:
-            data = []
-            
-    data.append(entry)
-    
-    with open(FEEDBACK_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-        
+async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
+    entry = (
+        datetime.now(timezone.utc).isoformat(),
+        feedback.request_id,
+        feedback.query.strip(),
+        feedback.response.strip(),
+        feedback.rating,
+    )
+
+    try:
+        with sqlite3.connect(DB_PATH) as connection:
+            connection.execute(
+                """
+                INSERT INTO feedback (timestamp, request_id, query_text, response_text, rating)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                entry,
+            )
+            connection.commit()
+    except sqlite3.Error as exc:  # pragma: no cover
+        raise HTTPException(status_code=500, detail="Failed to store feedback.") from exc
+
     return {"status": "success", "message": "Feedback received"}

@@ -12,6 +12,9 @@ def call_llm(
     max_tokens: int = 512
 ) -> str:
     """Shared helper to call OpenAI LLM."""
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured.")
+
     client = OpenAI(api_key=settings.openai_api_key)
     
     messages = [

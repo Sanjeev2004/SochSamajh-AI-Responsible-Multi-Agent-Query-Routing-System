@@ -1,30 +1,13 @@
 import axios from "axios";
+import type { RouterResponse } from "../types";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const api = axios.create({
     baseURL: API_BASE_URL,
     timeout: 30000
 });
-
-export interface RouterResponse {
-    response: string;
-    classification: {
-        domain: string;
-        risk_level: string;
-        illegal_request: boolean;
-        self_harm: boolean;
-        needs_disclaimer: boolean;
-        reasoning: string;
-    };
-    disclaimers: string[];
-    safety_flags: {
-        high_risk: boolean;
-        illegal_request: boolean;
-        self_harm: boolean;
-    };
-    request_id: string;
-}
 
 export async function getHealth() {
     try {
