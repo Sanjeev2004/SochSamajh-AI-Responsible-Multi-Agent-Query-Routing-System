@@ -64,7 +64,8 @@ def health_check() -> dict:
 @app.post("/api/route", response_model=RouterResponse)
 async def route_query(payload: RouteRequest) -> RouterResponse:
     try:
-        state = run_router(payload.query)
+        logger.info("Incoming route request", extra={"query_length": len(payload.query)})
+        state = run_router(payload.query, settings=settings)
         response = state["response"]
         classification = state["classification"]
         safety_flags = state["safety_flags"]

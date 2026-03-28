@@ -5,8 +5,9 @@ from langsmith import traceable
 from core.state import AgentResponse, ClassificationOutput
 
 CRISIS_RESOURCES = (
-    "If you are in immediate danger or thinking about self-harm, please seek help now: "
-    "Call or text 988 (U.S. Suicide & Crisis Lifeline) or text HOME to 741741 (Crisis Text Line)."
+    "If you are in immediate danger or thinking about self-harm, seek urgent help now. "
+    "If you are in the U.S. or Canada, call or text 988. If you are elsewhere, contact your local emergency services, "
+    "nearest hospital, or a trusted person who can stay with you right now."
 )
 
 

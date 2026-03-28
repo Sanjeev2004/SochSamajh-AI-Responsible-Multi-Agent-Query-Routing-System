@@ -5,7 +5,7 @@ from langsmith import traceable
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from agents.retriever import retrieve_context
+from services.retrieval_service import get_retrieved_context
 
 MEDICAL_DISCLAIMER = "This is general educational information and not medical advice. Please consult a qualified healthcare professional."
 
@@ -14,7 +14,7 @@ MEDICAL_DISCLAIMER = "This is general educational information and not medical ad
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
         # 1. Retrieve Context
-        context = retrieve_context(query, domain="medical")
+        context = get_retrieved_context(query=query, domain="medical", settings=settings)
 
         # 2. Augment Prompt
         system_prompt = (

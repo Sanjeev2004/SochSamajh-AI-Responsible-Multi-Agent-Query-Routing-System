@@ -5,7 +5,7 @@ from langsmith import traceable
 from core.config import Settings
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from agents.retriever import retrieve_context
+from services.retrieval_service import get_retrieved_context
 
 LEGAL_DISCLAIMER = (
     "This is general legal information, not legal advice. Laws vary by jurisdiction; consult a licensed attorney."
@@ -16,7 +16,7 @@ LEGAL_DISCLAIMER = (
 def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
         # 1. Retrieve Context
-        context = retrieve_context(query, domain="legal")
+        context = get_retrieved_context(query=query, domain="legal", settings=settings)
 
         # 2. Augment Prompt with retrieved context
         system_prompt = (

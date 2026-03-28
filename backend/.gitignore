@@ -14,3 +14,7 @@ build/
 env/
 *.log
 .DS_Store
+data/*.sqlite3
+rag/chroma_db/
+evaluation/report.json
+evaluation/dataset_v2.json

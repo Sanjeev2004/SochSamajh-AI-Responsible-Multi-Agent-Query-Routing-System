@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from random import Random
 import sys
@@ -14,7 +14,6 @@ from typing import Any, Callable, TypedDict
 from openai import OpenAI
 
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
-os.environ["MEDICAL_ROUTER_DISABLE_RETRIEVER"] = "true"
 os.environ["OPENAI_API_KEY"] = ""
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +26,6 @@ from agents.formatter import run_formatter
 from agents.general import run_general_agent
 from agents.legal import run_legal_agent
 from agents.medical import run_medical_agent
-from agents.retriever import Retriever
 from agents.safety import run_safety_agent
 from core.config import Settings
 from core.graph import run_router
@@ -191,24 +189,6 @@ def _build_safety_flags(classification: ClassificationOutput) -> SafetyFlags:
     )
 
 
-@contextmanager
-def _temporary_env(updates: dict[str, str | None]) -> Any:
-    previous = {key: os.environ.get(key) for key in updates}
-    try:
-        for key, value in updates.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
-        yield
-    finally:
-        for key, value in previous.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
-
-
 def _run_router_variant(
     query: str,
     settings: Settings,
@@ -236,19 +216,13 @@ def _run_router_variant(
         state["response"] = run_safety_agent(query, classification)
         return state
 
-    env_updates = {
-        "MEDICAL_ROUTER_DISABLE_RETRIEVER": "true" if force_disable_retriever else None,
-        "ENABLE_RETRIEVER": "false" if force_disable_retriever else os.getenv("ENABLE_RETRIEVER"),
-    }
-    Retriever._instance = None
-
-    with _temporary_env(env_updates):
-        if classification.domain == "medical":
-            response = run_medical_agent(query, classification, settings)
-        elif classification.domain == "legal":
-            response = run_legal_agent(query, classification, settings)
-        else:
-            response = run_general_agent(query, classification, settings)
+    effective_settings = replace(settings, enable_retriever=not force_disable_retriever)
+    if classification.domain == "medical":
+        response = run_medical_agent(query, classification, effective_settings)
+    elif classification.domain == "legal":
+        response = run_legal_agent(query, classification, effective_settings)
+    else:
+        response = run_general_agent(query, classification, effective_settings)
 
     if use_critic:
         response = run_critic(response, classification, query)
@@ -601,7 +575,7 @@ def run_evaluation() -> None:
             logger.warning("LLM judge client initialization failed: %s", exc)
 
     ablations: dict[str, Callable[[str, Settings], GraphState]] = {
-        "production": lambda query, eval_settings: run_router(query),
+        "production": lambda query, eval_settings: run_router(query, settings=eval_settings),
         "no_pre_screen": lambda query, eval_settings: _run_router_variant(
             query,
             eval_settings,

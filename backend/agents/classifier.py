@@ -1,21 +1,30 @@
 from __future__ import annotations
 
+import re
 from typing import Iterable
+
 from langsmith import traceable
 
 from core.config import Settings, logger
 from core.state import ClassificationOutput
+
 # from agents.router_semantic import semantic_router  # Temporarily disabled
 
 SELF_HARM_KEYWORDS = frozenset([
     "kill myself",
     "suicide",
     "end my life",
+    "ending everything",
+    "do not want to live anymore",
+    "don't want to live anymore",
     "self harm",
     "self-harm",
     "hurt myself",
+    "hurt myself tonight",
     "want to die",
     "overdose",
+    "kill myself tonight",
+    "fastest way to kill myself",
     "sleeping pills would end my life",
     "khud ko nuksan",
     "khud ko nuksan pahuncha",
@@ -30,17 +39,67 @@ ILLEGAL_KEYWORDS = frozenset([
     "tax fraud",
     "launder money",
     "forge",
+    "forge a signature",
+    "forged signature",
     "counterfeit",
     "blackmail",
+    "hack my neighbor's wi-fi",
+    "hack my neighbor's wifi",
     "how to hack",
     "buy drugs",
+    "break into a locked phone",
+    "destroy evidence",
 ])
 
-MEDICAL_HINTS = frozenset(["symptom", "diagnose", "side effects", "pain", "fever", "treatment", "medicine"])
-LEGAL_HINTS = frozenset(["contract", "lawsuit", "liability", "legal", "attorney", "court", "jurisdiction"])
+MEDICAL_HINTS = frozenset([
+    "symptom",
+    "symptoms",
+    "diagnose",
+    "side effects",
+    "pain",
+    "fever",
+    "treatment",
+    "medicine",
+    "doctor",
+    "medical",
+    "hospital",
+    "clinic",
+    "health",
+    "care",
+])
+
+LEGAL_HINTS = frozenset([
+    "contract",
+    "lawsuit",
+    "liability",
+    "legal",
+    "attorney",
+    "court",
+    "jurisdiction",
+    "lawyer",
+    "rights",
+    "complaint",
+    "consumer",
+    "notice",
+    "police",
+    "bail",
+])
+
+VAGUE_QUERY_TERMS = frozenset([
+    "help me with my issue",
+    "i have a problem and need advice",
+    "can you tell me what to do",
+    "i need urgent guidance",
+    "please help me figure this out",
+    "what should be my next step",
+    "i am confused and need direction",
+    "can you explain my situation",
+    "i do not know where to start",
+])
 
 MEDICAL_KEYWORDS = frozenset([
     "symptom",
+    "symptoms",
     "diabetes",
     "pain",
     "fever",
@@ -49,6 +108,11 @@ MEDICAL_KEYWORDS = frozenset([
     "health",
     "doctor",
     "medicine",
+    "medical",
+    "hospital",
+    "clinic",
+    "healthcare",
+    "medical care",
     "sick",
     "hurt",
     "tummy",
@@ -64,6 +128,26 @@ MEDICAL_KEYWORDS = frozenset([
     "vaccine",
     "vaccines",
     "bleeding",
+    "migraine",
+    "asthma",
+    "thyroid",
+    "anemia",
+    "acid reflux",
+    "vitamin d",
+    "pcos",
+    "panic attack",
+    "depression",
+    "seizure",
+    "snake bite",
+    "burn injury",
+    "dehydration",
+    "heat stroke",
+    "rabies",
+    "tb",
+    "tuberculosis",
+    "food poisoning",
+    "blood sugar",
+    "head injury",
     "cut",
     "poison",
     "cleaner",
@@ -89,6 +173,9 @@ LEGAL_KEYWORDS = frozenset([
     "divorce",
     "deposit",
     "landlord",
+    "tenant",
+    "rent",
+    "agreement",
     "legal notice",
     "employment law",
     "domestic violence",
@@ -96,6 +183,25 @@ LEGAL_KEYWORDS = frozenset([
     "consent",
     "negligence",
     "medical certificate",
+    "bail",
+    "consumer",
+    "complaint",
+    "legal heir",
+    "succession",
+    "rti",
+    "challan",
+    "cybercrime",
+    "arrest",
+    "harassment",
+    "injunction",
+    "mediation",
+    "police notice",
+    "maintenance",
+    "wrongful termination",
+    "termination",
+    "small claims",
+    "dispute",
+    "disputes",
 ])
 
 LEGAL_PRIORITY_TERMS = frozenset([
@@ -128,6 +234,18 @@ LEGAL_PRIORITY_TERMS = frozenset([
     "certificate",
     "consent",
     "negligence",
+    "bail",
+    "rent",
+    "consumer",
+    "rti",
+    "cybercrime",
+    "arrest",
+    "harassment",
+    "maintenance",
+    "wrongful termination",
+    "termination",
+    "small claims",
+    "dispute",
 ])
 
 MEDICAL_PRIORITY_TERMS = frozenset([
@@ -154,6 +272,19 @@ MEDICAL_PRIORITY_TERMS = frozenset([
     "poison",
     "cleaner",
     "bukhar",
+    "migraine",
+    "asthma",
+    "thyroid",
+    "anemia",
+    "acid reflux",
+    "pcos",
+    "depression",
+    "panic",
+    "dehydration",
+    "heat stroke",
+    "rabies",
+    "tuberculosis",
+    "gala dard",
 ])
 
 LEGAL_WEIGHTED_TERMS = {
@@ -181,6 +312,23 @@ LEGAL_WEIGHTED_TERMS = {
     "consent": 3,
     "negligence": 4,
     "medical certificate": 4,
+    "bail": 5,
+    "rent agreement": 5,
+    "consumer": 4,
+    "rti": 4,
+    "legal heir": 5,
+    "succession": 5,
+    "cybercrime": 4,
+    "challan": 4,
+    "arrest": 5,
+    "injunction": 4,
+    "mediation": 4,
+    "harassment": 4,
+    "police notice": 5,
+    "maintenance": 4,
+    "wrongful termination": 6,
+    "small claims": 5,
+    "dispute": 3,
 }
 
 MEDICAL_WEIGHTED_TERMS = {
@@ -205,6 +353,20 @@ MEDICAL_WEIGHTED_TERMS = {
     "poison": 4,
     "bukhar": 4,
     "gala dard": 4,
+    "migraine": 4,
+    "asthma": 4,
+    "thyroid": 4,
+    "anemia": 4,
+    "acid reflux": 4,
+    "pcos": 5,
+    "depression": 4,
+    "panic": 3,
+    "seizure": 5,
+    "snake bite": 5,
+    "burn injury": 5,
+    "dehydration": 4,
+    "rabies": 5,
+    "tuberculosis": 4,
 }
 
 HIGH_RISK_KEYWORDS = frozenset([
@@ -229,6 +391,19 @@ HIGH_RISK_KEYWORDS = frozenset([
     "domestic violence",
     "police picked up",
     "dog bite",
+    "turning blue",
+    "not waking up",
+    "seizure",
+    "snake bite",
+    "burn injury",
+    "black stool",
+    "chemical splash",
+    "stalked",
+    "kidnap",
+    "threatening",
+    "threatened",
+    "assault",
+    "suspicious death",
 ])
 
 MEDIUM_RISK_KEYWORDS = frozenset([
@@ -255,53 +430,54 @@ MEDIUM_RISK_KEYWORDS = frozenset([
     "consent",
     "negligence",
     "bukhar",
+    "doctor",
+    "hospital",
+    "lawyer",
+    "consumer",
+    "bail",
+    "notice",
+    "complaint",
+    "rights",
+    "asthma",
+    "pregnancy",
+    "wrongful termination",
+    "small claims",
 ])
 
 
 def _contains_any(text: str, phrases: Iterable[str]) -> bool:
-    """Check if text contains any of the given phrases (case-insensitive).
-    
-    Args:
-        text: The text to search in
-        phrases: Iterable of phrases to check for
-        
-    Returns:
-        bool: True if any phrase is found in text
-    """
     text_lower = text.lower()
-    return any(phrase in text_lower for phrase in phrases)
+    return any(_phrase_in_text(text_lower, phrase) for phrase in phrases)
 
 
 def _score_matches(text: str, phrases: Iterable[str]) -> int:
     text_lower = text.lower()
-    return sum(1 for phrase in phrases if phrase in text_lower)
+    return sum(1 for phrase in phrases if _phrase_in_text(text_lower, phrase))
 
 
 def _weighted_score(text: str, weighted_phrases: dict[str, int]) -> int:
     text_lower = text.lower()
-    return sum(weight for phrase, weight in weighted_phrases.items() if phrase in text_lower)
+    return sum(weight for phrase, weight in weighted_phrases.items() if _phrase_in_text(text_lower, phrase))
+
+
+def _phrase_in_text(text: str, phrase: str) -> bool:
+    escaped_phrase = re.escape(phrase.lower()).replace(r"\ ", r"\s+")
+    pattern = rf"(?<!\w){escaped_phrase}(?!\w)"
+    return re.search(pattern, text) is not None
+
+
+def _is_vague_query(text: str) -> bool:
+    text_lower = text.lower().strip()
+    if text_lower in VAGUE_QUERY_TERMS:
+        return True
+
+    generic_terms = ("help", "problem", "issue", "guidance", "situation")
+    word_count = len(text_lower.split())
+    return word_count <= 6 and any(term in text_lower for term in generic_terms)
 
 
 @traceable(name="pre_screen")
 def pre_screen_query(query: str) -> ClassificationOutput | None:
-    """Detect self-harm and illegal intent before processing.
-    
-    This is the first-stage safety check. If a query contains indicators
-    of self-harm or illegal intent, it returns immediately with a high-risk
-    classification, preventing the query from entering the standard pipeline.
-    
-    Args:
-        query: The user's query string
-        
-    Returns:
-        ClassificationOutput with safety flags if harmful intent detected,
-        None otherwise
-        
-    Notes:
-        - Uses keyword-based pattern matching for reliability
-        - Intentionally conservative (prefer false positives to false negatives)
-        - Decorated with @traceable for LangSmith observability
-    """
     if _contains_any(query, SELF_HARM_KEYWORDS):
         return ClassificationOutput(
             domain="general",
@@ -327,29 +503,8 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
 
 @traceable(name="intent_risk_classifier")
 def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
-    """Classify query intent across multiple dimensions.
-    
-    Analyzes the query to extract:
-      1. Domain (medical/legal/general/unknown)
-      2. Risk level (low/medium/high)
-      3. Need for disclaimers
-      4. Self-harm and illegal intent indicators
-      
-    Uses a hybrid approach:
-    1. Fast keyword matching (high precision)
-    2. Semantic embedding search (fallback for high recall)
-    
-    Args:
-        query: The user's query string
-        settings: Application settings
-        
-    Returns:
-        ClassificationOutput with comprehensive classification results
-    """
-    # Simple keyword-based classification for reliability
     query_lower = query.lower()
 
-    # Detect domain using weighted heuristic scores rather than first-match wins.
     medical_score = _score_matches(query_lower, MEDICAL_KEYWORDS)
     legal_score = _score_matches(query_lower, LEGAL_KEYWORDS)
     medical_priority_score = _score_matches(query_lower, MEDICAL_PRIORITY_TERMS)
@@ -357,8 +512,8 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     medical_weighted_score = _weighted_score(query_lower, MEDICAL_WEIGHTED_TERMS)
     legal_weighted_score = _weighted_score(query_lower, LEGAL_WEIGHTED_TERMS)
 
-    has_medical = medical_score > 0
-    has_legal = legal_score > 0
+    has_medical = medical_score > 0 or medical_priority_score > 0 or medical_weighted_score > 0
+    has_legal = legal_score > 0 or legal_priority_score > 0 or legal_weighted_score > 0
 
     domain = None
     reasoning = "Keyword-based classification"
@@ -377,33 +532,25 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         reasoning = f"Priority medical heuristic (medical={medical_priority_score}, legal={legal_priority_score})"
     elif legal_score > medical_score:
         domain = "legal"
-        reasoning = f"Weighted legal keyword match (legal={legal_score}, medical={medical_score})"
+        reasoning = f"Legal keyword match (legal={legal_score}, medical={medical_score})"
     elif medical_score > legal_score:
         domain = "medical"
-        reasoning = f"Weighted medical keyword match (medical={medical_score}, legal={legal_score})"
-    elif len(query.strip()) < 10:
+        reasoning = f"Medical keyword match (medical={medical_score}, legal={legal_score})"
+    elif len(query.strip()) < 10 or _is_vague_query(query_lower):
         domain = "unknown"
-        
-    # Hybrid Fallback: Use Semantic Router if keyword match is weak
-    if not domain or domain == "unknown" or (not has_medical and not has_legal):
-        logger.info("Keyword match inconclusive. Semantic routing temporarily disabled.")
-        # semantic_domain = semantic_router.predict(query)  # Temporarily disabled
-        # if semantic_domain:
-        #     domain = semantic_domain
-        #     reasoning = f"Semantic routing (embedding similarity). Initial keyword result was inconclusive."
-        # elif not domain:
-        if not domain:
-             domain = "general"
 
-    # Default to general if still nothing
+    if not domain or (domain == "unknown" and not _is_vague_query(query_lower)) or (not has_medical and not has_legal):
+        logger.info("Keyword match inconclusive. Semantic routing temporarily disabled.")
+        if not domain:
+            domain = "general"
+
     if not domain:
         domain = "general"
 
-    # Detect risk level
-    has_high_risk = any(kw in query_lower for kw in HIGH_RISK_KEYWORDS)
-    has_medium_risk = any(kw in query_lower for kw in MEDIUM_RISK_KEYWORDS)
-    if domain in {"medical", "legal"} and not has_high_risk and not has_medium_risk:
-        has_medium_risk = True
+    has_high_risk = _contains_any(query_lower, HIGH_RISK_KEYWORDS)
+    has_medium_risk = _contains_any(query_lower, MEDIUM_RISK_KEYWORDS)
+    if domain == "unknown":
+        has_medium_risk = False
 
     if has_high_risk:
         risk_level = "high"
@@ -412,7 +559,6 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     else:
         risk_level = "low"
 
-    # Needs disclaimer
     needs_disclaimer = domain in ["medical", "legal"]
 
     result = ClassificationOutput(

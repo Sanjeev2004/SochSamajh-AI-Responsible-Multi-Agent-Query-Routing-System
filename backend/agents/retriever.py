@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from core.config import logger
@@ -23,11 +22,6 @@ class Retriever:
             return
 
         self._init_attempted = True
-        enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").lower() in {"1", "true", "yes"}
-        force_disable = os.getenv("MEDICAL_ROUTER_DISABLE_RETRIEVER", "").lower() in {"1", "true", "yes"}
-        if force_disable or not enable_retriever:
-            logger.info("Retriever disabled. Set ENABLE_RETRIEVER=true to enable it.")
-            return
 
         try:
             import chromadb
