@@ -2,7 +2,7 @@
 
 from langsmith import traceable
 
-from core.config import Settings
+from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
 from services.retrieval_service import get_retrieved_context
@@ -38,7 +38,8 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
         )
-    except Exception:
+    except Exception as exc:
+        logger.exception("Medical agent fell back to static response: %s", exc)
         fallback = (
             "I can provide general educational information about medical topics. For specific health concerns, "
             "including symptoms, diagnosis, or treatment, please consult with a qualified healthcare professional "

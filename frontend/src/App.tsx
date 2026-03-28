@@ -1,10 +1,16 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+    Activity,
+    AlertTriangle,
+    CheckCircle,
+    ThumbsDown,
+    ThumbsUp
+} from "lucide-react";
 import { getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
 import { HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
 import { ResponseDisplay } from "./components/ResponseDisplay";
 import { LoadingState } from "./components/LoadingState";
-import { ThumbsUp, ThumbsDown, CheckCircle } from "lucide-react";
 
 export default function App() {
     const [health, setHealth] = useState<{ status: string; model: string } | null>(null);
@@ -12,7 +18,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [currentResult, setCurrentResult] = useState<RouterResponse | null>(null);
     const [history, setHistory] = useState<HistoryItem[]>([]);
-    const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
+    const [feedbackSent, setFeedbackSent] = useState(false);
 
     const currentHistoryItem = useMemo(() => {
         if (!currentResult) return null;
@@ -39,19 +45,19 @@ export default function App() {
         setLoading(true);
         setFeedbackSent(false);
         try {
-            const result: RouterResponse = await routeQuery(query);
+            const result = await routeQuery(query);
             setCurrentResult(result);
             setHistory((prev) => [
                 {
                     id: result.request_id,
                     query,
                     result,
-                    timestamp: new Date().toISOString(),
+                    timestamp: new Date().toISOString()
                 },
-                ...prev,
+                ...prev
             ]);
         } catch {
-            setError("Unable to process the request. Please try again.");
+            setError("We could not reach the router right now. Please try again in a moment.");
         } finally {
             setLoading(false);
         }
@@ -67,129 +73,192 @@ export default function App() {
                 rating
             );
             setFeedbackSent(true);
-        } catch (e) {
-            console.error("Failed to send feedback", e);
+        } catch (feedbackError) {
+            console.error("Failed to send feedback", feedbackError);
         }
     }
 
     const showCrisisResources = useMemo(
-        () => currentResult?.safety_flags.high_risk || currentResult?.safety_flags.self_harm,
+        () => Boolean(currentResult?.safety_flags.high_risk || currentResult?.safety_flags.self_harm),
         [currentResult]
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950/20 to-slate-950 text-slate-100 relative overflow-hidden">
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
-                <div
-                    className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse"
-                    style={{ animationDelay: "1s" }}
-                ></div>
-            </div>
+        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(39,140,137,0.18),_transparent_28%),radial-gradient(circle_at_85%_18%,_rgba(213,119,54,0.16),_transparent_22%),linear-gradient(180deg,_#0d1417_0%,_#111a1d_48%,_#0d1315_100%)] text-stone-100">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <header className="mb-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 px-6 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:px-8 sm:py-8">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-2xl">
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-100/90">
+                                <Activity className="h-3.5 w-3.5 text-teal-300" />
+                                Responsible Multi-Agent Router
+                            </div>
+                            <h1 className="max-w-2xl font-['Iowan_Old_Style','Palatino_Linotype','Book_Antiqua',serif] text-4xl leading-tight text-stone-50 sm:text-5xl">
+                                SochSamagh AI
+                            </h1>
+                            <p className="mt-4 max-w-xl text-sm leading-7 text-stone-300 sm:text-base">
+                                Get a routed answer, clear disclaimers, and visible safety signals without extra clutter.
+                            </p>
+                        </div>
 
-            <div className="mx-auto max-w-4xl px-6 py-8 relative z-10">
-                <header className="mb-12 text-center sm:text-left">
-                    <div className="inline-block">
-                        <h1 className="text-4xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                            SochSamajh AI Router
-                        </h1>
-                        <p className="text-sm text-slate-400 tracking-widest uppercase">
-                            Safety-Aware Medical and Legal Assistant
-                        </p>
-                    </div>
-                    <div className="mt-4 flex items-center justify-center sm:justify-start gap-3">
-                        <div
-                            className={`h-2 w-2 rounded-full ${
-                                health?.status === "ok" ? "bg-emerald-400 animate-pulse" : "bg-slate-600"
-                            }`}
-                        ></div>
-                        <span className="text-xs text-slate-400">
-                            {health?.status === "ok" ? "System Ready" : "Backend Unavailable"}
-                        </span>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:w-[20rem]">
+                            <div className="rounded-2xl border border-teal-400/20 bg-teal-400/10 p-4">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-200/80">
+                                    Backend
+                                </p>
+                                <div className="mt-2 flex items-center gap-2">
+                                    <span
+                                        className={`h-2.5 w-2.5 rounded-full ${
+                                            health?.status === "ok" ? "bg-emerald-400 shadow-lg shadow-emerald-400/40" : "bg-amber-400"
+                                        }`}
+                                    />
+                                    <p className="text-sm font-medium text-stone-100">
+                                        {health?.status === "ok" ? "System ready" : "Connection unstable"}
+                                    </p>
+                                </div>
+                                <p className="mt-2 text-xs text-stone-300/85">{health?.status === "ok" ? `Model: ${health?.model ?? "configured"}` : "API unavailable"}</p>
+                            </div>
+
+                            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-200/80">
+                                    Scope
+                                </p>
+                                <p className="mt-2 text-sm font-medium text-stone-100">Educational guidance only</p>
+                                <p className="mt-2 text-xs leading-5 text-stone-300/85">Not a replacement for a doctor, lawyer, or emergency help.</p>
+                            </div>
+                        </div>
                     </div>
                 </header>
 
-                <main className="space-y-8">
-                    <QueryInput onSubmit={handleSubmit} disabled={loading} />
-
-                    {error && (
-                        <div className="rounded-xl bg-gradient-to-r from-rose-500/20 to-rose-500/10 backdrop-blur border border-rose-500/30 p-4 text-xs text-rose-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                            Warning: {error}
+                <main className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,0.7fr)]">
+                    <section className="space-y-6">
+                        <div className="rounded-[2rem] border border-white/10 bg-black/20 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-6">
+                            <QueryInput onSubmit={handleSubmit} disabled={loading} />
                         </div>
-                    )}
 
-                    {loading && <LoadingState />}
-
-                    {currentResult && !loading && (
-                        <div className="space-y-4">
-                            <ResponseDisplay result={currentResult} />
-                            
-                            {/* Feedback Section */}
-                            <div className="flex items-center justify-end gap-2 fade-in slide-in-from-bottom-2 duration-500">
-                                <span className="text-xs text-slate-500 mr-2">Was this helpful?</span>
-                                {feedbackSent ? (
-                                    <span className="flex items-center text-xs text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full border border-emerald-400/20">
-                                        <CheckCircle className="w-3 h-3 mr-1.5" />
-                                        Feedback Sent
-                                    </span>
-                                ) : (
-                                    <>
-                                        <button 
-                                            onClick={() => handleFeedback("up")}
-                                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                                            title="Helpful"
-                                        >
-                                            <ThumbsUp className="w-4 h-4" />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleFeedback("down")}
-                                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
-                                            title="Not Helpful"
-                                        >
-                                            <ThumbsDown className="w-4 h-4" />
-                                        </button>
-                                    </>
-                                )}
+                        {error && (
+                            <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-100">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                    <p>{error}</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {showCrisisResources && (
-                        <div className="rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-500/10 backdrop-blur border border-amber-500/30 p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <p className="text-xs text-amber-100 leading-relaxed">
-                                <strong>Crisis Support (U.S.):</strong> Call 911 for emergencies | Call or text 988
-                                (Suicide and Crisis Lifeline) | Text HOME to 741741 (Crisis Text Line)
-                            </p>
-                        </div>
-                    )}
+                        {loading && <LoadingState />}
 
-                    {history.length > 0 && (
-                        <div className="border-t border-slate-700/50 pt-8 mt-12">
-                            <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-widest mb-4">
-                                Conversation History
-                            </h3>
-                            <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {history.map((item, idx) => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => {
-                                            setCurrentResult(item.result);
-                                            setFeedbackSent(false); // Reset feedback state for history recall
-                                        }}
-                                        className="group w-full text-left px-4 py-3 rounded-lg bg-gradient-to-r from-slate-800/50 to-slate-800/20 hover:from-indigo-500/20 hover:to-violet-500/20 border border-slate-700/50 hover:border-indigo-500/30 transition-all duration-300 transform hover:translate-x-1"
-                                    >
-                                        <p className="text-sm text-slate-200 group-hover:text-indigo-300 transition line-clamp-2">
-                                            {idx === 0 && <span className="text-indigo-400 mr-2">-&gt;</span>}
-                                            {item.query}
+                        {currentResult && !loading && (
+                            <div className="space-y-4">
+                                <ResponseDisplay result={currentResult} />
+
+                                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-stone-100">Was this response useful?</p>
+                                        <p className="mt-1 text-xs text-stone-400">
+                                            Your feedback helps improve routing quality and safer fallback behavior.
                                         </p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            {new Date(item.timestamp).toLocaleTimeString()}
-                                        </p>
-                                    </button>
-                                ))}
+                                    </div>
+
+                                    {feedbackSent ? (
+                                        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-200">
+                                            <CheckCircle className="h-4 w-4" />
+                                            Feedback recorded
+                                        </span>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleFeedback("up")}
+                                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-stone-200 transition hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-200"
+                                                title="Helpful"
+                                            >
+                                                <ThumbsUp className="h-4 w-4" />
+                                                Helpful
+                                            </button>
+                                            <button
+                                                onClick={() => handleFeedback("down")}
+                                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-stone-200 transition hover:border-rose-400/30 hover:bg-rose-400/10 hover:text-rose-200"
+                                                title="Not Helpful"
+                                            >
+                                                <ThumbsDown className="h-4 w-4" />
+                                                Needs work
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {showCrisisResources && (
+                            <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 sm:p-5">
+                                <div className="flex gap-3">
+                                    <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-200" />
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-semibold text-rose-50">Immediate support matters here.</p>
+                                        <p className="text-sm leading-6 text-rose-100/90">
+                                            If this feels urgent or unsafe, contact local emergency services, the nearest
+                                            hospital, or a trusted person who can stay with you now. In India, emergency
+                                            support is available at 112.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    <aside className="space-y-6">
+                        <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+                            <div className="mb-4 flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-emerald-300" />
+                                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-200">
+                                    Quick tips
+                                </h2>
+                            </div>
+                            <div className="space-y-3 text-sm text-stone-300">
+                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                    Add symptoms, timeline, or jurisdiction.
+                                </div>
+                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                    Mention urgency if the situation feels serious.
+                                </div>
+                            </div>
+                        </section>
+
+                        {history.length > 0 && (
+                            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+                                <div className="mb-4 flex items-center gap-2">
+                                    <Activity className="h-4 w-4 text-cyan-300" />
+                                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-200">
+                                        Recent conversation
+                                    </h2>
+                                </div>
+                                <div className="space-y-3">
+                                    {history.map((item, idx) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => {
+                                                setCurrentResult(item.result);
+                                                setFeedbackSent(false);
+                                            }}
+                                            className="w-full rounded-2xl border border-white/8 bg-black/15 p-4 text-left transition hover:border-cyan-400/25 hover:bg-cyan-400/10"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <p className="line-clamp-3 text-sm leading-6 text-stone-200">
+                                                    {idx === 0 ? "Latest: " : ""}
+                                                    {item.query}
+                                                </p>
+                                                <span className="whitespace-nowrap rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                                                    {item.result.classification.domain}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2 text-xs text-stone-500">
+                                                {new Date(item.timestamp).toLocaleString()}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </aside>
                 </main>
             </div>
         </div>

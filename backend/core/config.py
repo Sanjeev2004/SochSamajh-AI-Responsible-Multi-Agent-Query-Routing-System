@@ -22,6 +22,16 @@ logger = logging.getLogger("medical_legal_router")
 logger.setLevel(logging.INFO)
 
 
+def _clean_env_value(value: str | None, *, remove_all_whitespace: bool = False) -> str:
+    if value is None:
+        return ""
+
+    cleaned = value.strip().strip("\"'").strip()
+    if remove_all_whitespace:
+        cleaned = "".join(cleaned.split())
+    return cleaned
+
+
 @dataclass(frozen=True)
 class Settings:
     """Immutable configuration container for the application.
@@ -71,8 +81,8 @@ class Settings:
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
         langchain_endpoint = os.getenv("LANGCHAIN_ENDPOINT")
         
-        openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
-        openai_model = os.getenv("OPENAI_MODEL", "gpt-4o").strip()
+        openai_api_key = _clean_env_value(os.getenv("OPENAI_API_KEY"), remove_all_whitespace=True)
+        openai_model = _clean_env_value(os.getenv("OPENAI_MODEL", "gpt-4o"))
         openai_timeout_seconds = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "20").strip() or "20")
         openai_max_retries = int(os.getenv("OPENAI_MAX_RETRIES", "1").strip() or "1")
         enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").strip().lower() in {"1", "true", "yes"}

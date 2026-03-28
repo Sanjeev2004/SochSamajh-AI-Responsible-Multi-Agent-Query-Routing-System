@@ -3,5 +3,52 @@
 @tailwind utilities;
 
 :root {
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+    font-family: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --bg-deep: #0d1417;
+    --bg-panel: rgba(255, 255, 255, 0.05);
+    --text-main: #f5f2ea;
+    --text-soft: #b7b2a7;
+    --accent-teal: #78d7ca;
+    --accent-amber: #ebb16f;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-width: 320px;
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--text-main);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+::selection {
+    background: rgba(120, 215, 202, 0.28);
+    color: white;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(120, 215, 202, 0.45), rgba(235, 177, 111, 0.42));
+}
+
+#root {
+    min-height: 100vh;
 }

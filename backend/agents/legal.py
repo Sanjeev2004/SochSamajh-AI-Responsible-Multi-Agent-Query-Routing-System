@@ -2,7 +2,7 @@
 
 from langsmith import traceable
 
-from core.config import Settings
+from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
 from services.retrieval_service import get_retrieved_context
@@ -40,7 +40,8 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
             disclaimers=[LEGAL_DISCLAIMER],
             safety_notes=[],
         )
-    except Exception:
+    except Exception as exc:
+        logger.exception("Legal agent fell back to static response: %s", exc)
         fallback = (
             "I can provide general legal information and concepts. However, laws vary significantly by jurisdiction "
             "and your specific circumstances matter. For advice applicable to your situation, please consult with "
