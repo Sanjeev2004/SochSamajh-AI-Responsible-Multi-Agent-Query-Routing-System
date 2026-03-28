@@ -41,6 +41,17 @@ class RouteRequest(BaseModel):
         return trimmed
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": app.title,
+        "status": "ok",
+        "health": "/api/health",
+        "route": "/api/route",
+        "docs": "/docs",
+    }
+
+
 @app.get("/api/health")
 def health_check() -> dict:
     return {

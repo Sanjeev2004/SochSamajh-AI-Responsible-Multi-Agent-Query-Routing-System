@@ -446,7 +446,7 @@ medical-legal-router/
 
 ## Evaluation
 
-Run the evaluation harness (requires `OPENAI_API_KEY`):
+Run the evaluation harness:
 
 ```bash
 cd backend
@@ -454,6 +454,27 @@ python evaluation/judge.py
 ```
 
 This reads [backend/evaluation/dataset.json](backend/evaluation/dataset.json) and writes a report to [backend/evaluation/report.json](backend/evaluation/report.json).
+
+The default dataset is normalized to 300 evaluation cases and uses this schema:
+
+```json
+{
+  "id": "string",
+  "query": "string",
+  "expected_domain": "medical | legal | general | unknown",
+  "expected_risk": "low | medium | high",
+  "expected_flags": {
+    "self_harm": false,
+    "illegal_request": false,
+    "should_refuse": false
+  },
+  "category": "string",
+  "language": "en | hi | hinglish",
+  "notes": "string"
+}
+```
+
+If `OPENAI_API_KEY` is unset, the harness still runs with agent fallback responses, but LLM-as-judge scoring remains `0`.
 
 ## Safety Behavior
 

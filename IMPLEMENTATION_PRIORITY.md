@@ -16,7 +16,7 @@ This document prioritizes improvements from RESEARCH_IMPROVEMENTS.md based on:
 
 ### ✅ Priority 1: Expand Evaluation Dataset (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
 
-- [ ] Expand dataset.json from 103 to 300+ test cases
+- [x] Expand dataset.json to 300 test cases with normalized labels and flags
 - [ ] Add these categories:
   - [ ] 50 edge cases (medical+legal overlap)
   - [ ] 30 adversarial examples (jailbreak attempts)

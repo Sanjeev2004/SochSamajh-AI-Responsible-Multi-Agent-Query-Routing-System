@@ -104,6 +104,28 @@ def confusion_matrix(
     return matrix
 
 
+def top_confusions(
+    matrix: dict[str, dict[str, int]],
+    *,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    confusions: list[dict[str, Any]] = []
+    for expected, row in matrix.items():
+        for predicted, count in row.items():
+            if expected == predicted or count == 0:
+                continue
+            confusions.append(
+                {
+                    "expected": expected,
+                    "predicted": predicted,
+                    "count": count,
+                }
+            )
+
+    confusions.sort(key=lambda item: (-item["count"], item["expected"], item["predicted"]))
+    return confusions[:limit]
+
+
 def binary_metrics(expected: list[bool], predicted: list[bool]) -> dict[str, Any]:
     tp = sum(1 for exp, pred in zip(expected, predicted) if exp and pred)
     tn = sum(1 for exp, pred in zip(expected, predicted) if not exp and not pred)
@@ -123,6 +145,10 @@ def binary_metrics(expected: list[bool], predicted: list[bool]) -> dict[str, Any
             "f1": f1,
             "false_positive_rate": _safe_divide(fp, fp + tn),
             "false_negative_rate": _safe_divide(fn, fn + tp),
+            "tp": tp,
+            "tn": tn,
+            "fp": fp,
+            "fn": fn,
             "support_positive": sum(1 for value in expected if value),
             "support_negative": sum(1 for value in expected if not value),
         }
@@ -138,8 +164,15 @@ def latency_summary(latencies: list[float]) -> dict[str, float]:
     def percentile(value: float) -> float:
         if len(sorted_latencies) == 1:
             return sorted_latencies[0]
-        index = min(len(sorted_latencies) - 1, max(0, round((len(sorted_latencies) - 1) * value)))
-        return sorted_latencies[index]
+        index = value * (len(sorted_latencies) - 1)
+        lower_index = int(index)
+        upper_index = min(len(sorted_latencies) - 1, lower_index + 1)
+        if lower_index == upper_index:
+            return sorted_latencies[lower_index]
+        fraction = index - lower_index
+        lower_value = sorted_latencies[lower_index]
+        upper_value = sorted_latencies[upper_index]
+        return lower_value + (upper_value - lower_value) * fraction
 
     return _round_metrics(
         {

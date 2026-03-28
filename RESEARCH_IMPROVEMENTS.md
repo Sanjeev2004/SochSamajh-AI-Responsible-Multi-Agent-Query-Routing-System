@@ -20,7 +20,7 @@ Your current project demonstrates a solid multi-agent architecture with safety-f
 **Research Gaps to Address:**
 
 - ⚠️ Limited evaluation metrics and benchmarking
-- ⚠️ Small evaluation dataset (only 103 test cases)
+- ✅ Evaluation dataset expanded to 300 normalized test cases
 - ⚠️ RAG retriever currently disabled
 - ⚠️ No comparative analysis with baselines
 - ⚠️ Missing ablation studies
@@ -135,7 +135,7 @@ class EvaluationMetrics:
 
 ### 1.2 Expanded Evaluation Dataset
 
-**Current State:** 103 test cases in dataset.json
+**Current State:** 300 normalized test cases in dataset.json
 
 **Improvement: Create Comprehensive Test Suite (500+ cases)**
 
