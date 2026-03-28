@@ -17,6 +17,8 @@ from openai import OpenAI
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = BACKEND_ROOT.parent
+EXPECTED_VENV_PYTHON = BACKEND_ROOT / "venv" / "Scripts" / "python.exe"
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -112,6 +114,31 @@ BASELINE_HIGH_RISK_TERMS = {
     "domestic violence",
     "threatened",
 }
+
+
+def _normalize_path(path: str | Path) -> str:
+    return str(Path(path).resolve()).lower()
+
+
+def _ensure_backend_venv_python() -> None:
+    if os.getenv("SOCHSAMAJH_EVAL_REEXEC") == "1":
+        return
+
+    if not EXPECTED_VENV_PYTHON.exists():
+        return
+
+    current_python = _normalize_path(sys.executable)
+    expected_python = _normalize_path(EXPECTED_VENV_PYTHON)
+    if current_python == expected_python:
+        return
+
+    logger.warning(
+        "Evaluation harness was started with %s instead of %s. Re-launching with the backend virtualenv interpreter.",
+        sys.executable,
+        EXPECTED_VENV_PYTHON,
+    )
+    os.environ["SOCHSAMAJH_EVAL_REEXEC"] = "1"
+    os.execv(str(EXPECTED_VENV_PYTHON), [str(EXPECTED_VENV_PYTHON), *sys.argv])
 
 
 class EvaluationResult(TypedDict):
@@ -729,6 +756,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
+    _ensure_backend_venv_python()
     args = _parse_args()
     run_evaluation(
         llm_judge_enabled_override=False if args.disable_llm_judge else None,

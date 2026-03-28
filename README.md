@@ -5,15 +5,37 @@
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688)
 
-A safety-first multi-agent system that routes medical, legal, and general queries to specialized agents with risk-aware handling and domain-specific disclaimers.
+A safety-first multi-agent system that routes medical, legal, and general queries to specialized agents with risk-aware handling, domain-specific disclaimers, and measurable evaluation.
+
+This project is designed as a B.Tech major-project style responsible AI system, not just a chatbot UI. It combines multi-agent routing, safety checks, structured evaluation, testing, CI, and deployable full-stack engineering.
 
 ## Key Features
 
 - Pre-screening for self-harm and illegal intent before model calls
 - Intent classification across domain and risk level
+- Better handling for medical urgency, legal practical-next-step queries, and ambiguous mixed-domain prompts
 - Dedicated agents for medical, legal, general, and safety responses
 - LangGraph-based routing with critic and formatter stages
+- Structured evaluation on a 300-case dataset with baselines and ablations
+- Fix-driven regression testing on real prompts (including Hinglish/India-specific phrasing)
+- Backend tests, CI, and local dev/evaluation scripts
 - FastAPI backend and React + TypeScript frontend
+
+## Recent Improvements (March 2026)
+
+- Classifier tuning:
+  - stronger medical urgency detection (for example chest tightness, breathing difficulty, stroke-like symptoms)
+  - better legal intent detection for practical process questions (documents, complaint flow, legal notice)
+  - improved unknown/ambiguous routing when users ask for guidance without enough context
+- Response quality tuning:
+  - high-risk medical responses now include immediate action guidance
+  - medium/high legal responses include practical next-step checklists
+  - unknown-domain responses ask focused clarification questions instead of guessing too early
+- RAG stability fix:
+  - ingestion now uses file-relative paths to avoid accidental nested duplicate folders
+  - canonical RAG location remains under [backend/rag](backend/rag)
+- Regression coverage:
+  - added fix-driven test prompts to prevent backsliding in urgency, legal-process, and ambiguity behavior
 
 ## System Flow
 
@@ -32,6 +54,94 @@ User Query
   ↓
 Final Response
 ```
+
+## Why This Project Matters
+
+Medical and legal questions are high-stakes because generic answers can be confusing, unsafe, or overconfident. This project tries to solve that by:
+
+- separating domain routing from answer generation
+- treating urgent and harmful cases differently from normal questions
+- attaching structured safety metadata to responses
+- evaluating the system with repeatable offline benchmarks instead of only manual demos
+
+## Architecture
+
+### High-Level Architecture
+
+```
+Frontend (React + TypeScript)
+        |
+        v
+FastAPI API Layer
+        |
+        v
+LangGraph Router
+  |        |        |        |
+  v        v        v        v
+Safety   Medical   Legal   General
+ Agent    Agent     Agent    Agent
+  \         |         |        /
+   \        v         v       /
+    ------ Critic + Formatter ------
+                  |
+                  v
+            Final Response
+```
+
+### Core Components
+
+- `backend/api/`
+  FastAPI endpoints such as `/api/route`, `/api/health`, and `/api/feedback`
+- `backend/core/`
+  settings, graph construction, structured state, and request logging
+- `backend/agents/`
+  classifier, safety, medical, legal, general, critic, formatter, and retriever logic
+- `backend/services/`
+  service helpers such as retriever gating
+- `backend/evaluation/`
+  dataset, metrics, judge, baselines, ablation logic, and report generation
+- `backend/tests/`
+  classifier, API, router-flow, feedback, retriever, and regression coverage
+
+### Request Lifecycle
+
+1. User submits a query from the React frontend.
+2. FastAPI validates the request.
+3. A pre-screen checks for self-harm or illegal intent.
+4. The classifier predicts domain and risk.
+5. The graph routes the query to medical, legal, general, or safety handling.
+6. The critic checks for missing safety language.
+7. The formatter injects disclaimers, practical next steps, or clarification prompts.
+8. The API returns the final response with metadata and safety flags.
+
+## Why This Is Better Than Plain ChatGPT or Gemini For This Use Case
+
+This project is **not claiming to be universally smarter than ChatGPT or Gemini**. Those are broad general-purpose assistants.  
+The value here is that SochSamajh AI is **more controlled, auditable, and measurable for this specific medical/legal routing problem**.
+
+| Area | Generic ChatGPT / Gemini Use | SochSamajh AI |
+| --- | --- | --- |
+| Domain routing | Usually one general assistant flow | Explicit medical/legal/general/safety routing |
+| Safety path | Depends on prompt/session behavior | Dedicated pre-screen + safety route |
+| Risk metadata | Usually hidden from user | Returns `risk_level` and `safety_flags` |
+| Disclaimers | May vary answer to answer | Enforced through the pipeline |
+| Ambiguous queries | May answer too early | Can route to `unknown` and ask clarification |
+| Evaluation | Often informal/manual | Dataset, baselines, ablations, judge, regression tests |
+| Engineering ownership | External product | Your own deployable, inspectable system |
+
+### Honest Viva Framing
+
+Good framing:
+
+- this project is better for a **responsible domain-routing use case**
+- this project is easier to **measure, audit, and demonstrate**
+- this project shows **engineering + evaluation**, not only prompting
+
+Avoid saying:
+
+- it is smarter than ChatGPT in general
+- it replaces doctors, lawyers, or emergency services
+- it is a final medical/legal decision system
 
 ## Quick Start
 
@@ -82,6 +192,26 @@ npm run dev
 ```
 
 Visit <http://localhost:5173>.
+
+### One-Command Local Development (Windows PowerShell)
+
+Start backend and frontend together:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
+```
+
+Stop both:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1
+```
+
+Run evaluation safely with the backend virtualenv:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-evaluation.ps1 -JudgeSampleSize 10
+```
 
 ### Verify Installation
 
@@ -475,6 +605,7 @@ EVAL_ENABLE_LLM_JUDGE=false python evaluation/judge.py
 ```
 
 In the report, check:
+
 - `runs.production.summary.average_judge_score`
 - `runs.production.summary.judge_cases_scored`
 - `runs.production.summary.judge_coverage`
@@ -501,6 +632,52 @@ The default dataset is normalized to 300 evaluation cases and uses this schema:
 
 If `OPENAI_API_KEY` is unset, the harness still runs with agent fallback responses, but LLM-as-judge scoring remains `0`.
 
+## Current Evaluation Snapshot
+
+Latest offline benchmark on the 300-case dataset:
+
+- Routing Accuracy: `83.00%`
+- Routing Macro F1: `79.72%`
+- Risk Accuracy: `62.33%`
+- Risk Macro F1: `62.91%`
+- High-Risk F1: `65.63%`
+
+These numbers are useful for project review because they show the system is being measured, not only demonstrated.
+
+## Demo Scenarios
+
+Recommended demo prompts:
+
+1. Medical urgency  
+   `Chest pain with left arm pain and sweating since 20 minutes, emergency?`
+2. Legal practical guidance  
+   `My landlord is not returning my security deposit. What should I do next?`
+3. Ambiguous mixed-domain query  
+   `I need legal and medical help both, not sure where to start.`
+4. Safety case  
+   `I want to hurt myself tonight.`
+5. India-specific legal case  
+   `FIR register na ho to next legal step kya hota hai?`
+6. India-specific medical case  
+   `Dog bite hua hai and vaccine status unknown, urgent treatment chahiye.`
+
+These six prompts show routing, urgency handling, ambiguity handling, multilingual behavior, and safety behavior in a short demo.
+
+## Viva Talking Points
+
+If asked "What is your contribution?", a strong short answer is:
+
+- built a responsible multi-agent router for medical and legal queries
+- added structured safety checks before normal answer generation
+- created a 300-case evaluation dataset with baselines and ablations
+- added tests, CI, and deployment scripts for engineering reliability
+- delivered a full-stack system instead of only a prompt or notebook
+
+If asked "Why not just use ChatGPT?", a strong answer is:
+
+- generic chatbots are broad, but this project adds explicit routing, safety metadata, domain-specific formatting, benchmarking, and auditability
+- the contribution is the full controlled pipeline around the model, not only the model output
+
 ## Safety Behavior
 
 - **Self-harm intent** → Safety response + crisis resources
@@ -519,7 +696,14 @@ If `OPENAI_API_KEY` is unset, the harness still runs with agent fallback respons
 
 - **API connection failed:** Check that `VITE_API_URL` points to your backend
 - **Build errors:** Ensure Node.js 18+ is installed
+- **Dependencies missing after cleanup:** Reinstall with `cd frontend && npm install`
 - **Path issues on Windows:** If folder contains `&`, use: `node .\node_modules\vite\bin\vite.js --host 0.0.0.0 --port 5173`
+
+### Repository Hygiene
+
+- Generated artifacts are intentionally kept out of Git (logs, caches, temporary runtime files).
+- If local cleanup removed frontend dependencies, run `npm install` again inside [frontend](frontend).
+- If you need to rebuild retrieval data, use [backend/rag/ingest.py](backend/rag/ingest.py) so vectors are written only to [backend/rag/chroma_db](backend/rag/chroma_db).
 
 ### Deployment Issues
 

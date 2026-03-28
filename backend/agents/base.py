@@ -3,6 +3,7 @@ from __future__ import annotations
 from openai import OpenAI
 from core.config import Settings
 
+
 def call_llm(
     query: str, 
     system_prompt: str, 
@@ -14,11 +15,19 @@ def call_llm(
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured.")
 
-    client = OpenAI(
-        api_key=settings.openai_api_key,
-        timeout=settings.openai_timeout_seconds,
-        max_retries=settings.openai_max_retries,
-    )
+    try:
+        client = OpenAI(
+            api_key=settings.openai_api_key,
+            timeout=settings.openai_timeout_seconds,
+            max_retries=settings.openai_max_retries,
+        )
+    except TypeError as exc:
+        if "proxies" in str(exc):
+            raise RuntimeError(
+                "OpenAI client initialization failed because this Python environment has an incompatible "
+                "openai/httpx stack. Use backend\\venv\\Scripts\\python.exe or reinstall backend requirements."
+            ) from exc
+        raise
     
     messages = [
         {"role": "system", "content": system_prompt},
