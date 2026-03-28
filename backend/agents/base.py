@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from openai import OpenAI
 from core.config import Settings
-from core.state import AgentResponse
 
 def call_llm(
     query: str, 
@@ -15,7 +14,11 @@ def call_llm(
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured.")
 
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
     
     messages = [
         {"role": "system", "content": system_prompt},

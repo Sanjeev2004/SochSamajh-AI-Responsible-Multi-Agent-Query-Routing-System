@@ -132,14 +132,16 @@ def build_graph() -> StateGraph:
     return graph
 
 
+COMPILED_GRAPH = build_graph().compile()
+
+
 def run_router(query: str) -> GraphState:
     request_id = str(uuid.uuid4())
-    graph = build_graph().compile()
     initial_state: GraphState = {
         "query": query,
         "request_id": request_id,
     }
-    result = graph.invoke(initial_state)
+    result = COMPILED_GRAPH.invoke(initial_state)
     safety_flags = result.get("safety_flags")
     if safety_flags and (safety_flags.high_risk or safety_flags.self_harm or safety_flags.illegal_request):
         logger.info("Safety-flagged interaction", extra={"request_id": request_id})

@@ -47,6 +47,9 @@ class Settings:
     backend_cors_origins: list[str]
     openai_api_key: str | None
     openai_model: str | None
+    openai_timeout_seconds: float
+    openai_max_retries: int
+    enable_retriever: bool
 
 
     @staticmethod
@@ -70,6 +73,9 @@ class Settings:
         
         openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
         openai_model = os.getenv("OPENAI_MODEL", "gpt-4o").strip()
+        openai_timeout_seconds = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "20").strip() or "20")
+        openai_max_retries = int(os.getenv("OPENAI_MAX_RETRIES", "1").strip() or "1")
+        enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").strip().lower() in {"1", "true", "yes"}
         # Parse CORS origins - allow comma-separated string
         cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "").strip()
         if cors_origins_str:
@@ -90,7 +96,8 @@ class Settings:
 
         tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2")
         if tracing_enabled is None:
-            tracing_enabled = "true" if langsmith_api_key else "false"
+            # Default to disabled so request handling does not depend on tracing.
+            tracing_enabled = "false"
         os.environ.setdefault("LANGCHAIN_TRACING_V2", tracing_enabled)
         if langsmith_project:
             os.environ.setdefault("LANGSMITH_PROJECT", langsmith_project)
@@ -107,4 +114,7 @@ class Settings:
             backend_cors_origins=backend_cors_origins,
             openai_api_key=openai_api_key,
             openai_model=openai_model,
+            openai_timeout_seconds=openai_timeout_seconds,
+            openai_max_retries=openai_max_retries,
+            enable_retriever=enable_retriever,
         )

@@ -23,8 +23,10 @@ class Retriever:
             return
 
         self._init_attempted = True
-        if os.getenv("MEDICAL_ROUTER_DISABLE_RETRIEVER", "").lower() in {"1", "true", "yes"}:
-            logger.info("Retriever disabled via MEDICAL_ROUTER_DISABLE_RETRIEVER.")
+        enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").lower() in {"1", "true", "yes"}
+        force_disable = os.getenv("MEDICAL_ROUTER_DISABLE_RETRIEVER", "").lower() in {"1", "true", "yes"}
+        if force_disable or not enable_retriever:
+            logger.info("Retriever disabled. Set ENABLE_RETRIEVER=true to enable it.")
             return
 
         try:
