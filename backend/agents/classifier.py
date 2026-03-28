@@ -95,6 +95,10 @@ VAGUE_QUERY_TERMS = frozenset([
     "i am confused and need direction",
     "can you explain my situation",
     "i do not know where to start",
+    "mujhe samajh nahi aa raha kya karun",
+    "kya karun",
+    "guide karo",
+    "need advice",
 ])
 
 MEDICAL_KEYWORDS = frozenset([
@@ -154,6 +158,12 @@ MEDICAL_KEYWORDS = frozenset([
     "child",
     "bukhar",
     "gala dard",
+    "chest tightness",
+    "numbness",
+    "drooping",
+    "tightness",
+    "shortness of breath",
+    "emergency room",
 ])
 
 LEGAL_KEYWORDS = frozenset([
@@ -248,6 +258,20 @@ LEGAL_PRIORITY_TERMS = frozenset([
     "dispute",
 ])
 
+LEGAL_REMEDY_TERMS = frozenset([
+    "compensation",
+    "medical negligence",
+    "malpractice",
+    "consumer court",
+    "legal complaint",
+    "legal notice",
+    "step by step",
+    "what can i do",
+    "what should i do now",
+    "documents needed",
+    "where to file",
+])
+
 MEDICAL_PRIORITY_TERMS = frozenset([
     "diagnosis",
     "diagnose",
@@ -285,6 +309,9 @@ MEDICAL_PRIORITY_TERMS = frozenset([
     "rabies",
     "tuberculosis",
     "gala dard",
+    "shortness of breath",
+    "numbness",
+    "drooping",
 ])
 
 LEGAL_WEIGHTED_TERMS = {
@@ -367,6 +394,10 @@ MEDICAL_WEIGHTED_TERMS = {
     "dehydration": 4,
     "rabies": 5,
     "tuberculosis": 4,
+    "shortness of breath": 5,
+    "chest tightness": 4,
+    "numbness": 4,
+    "drooping": 5,
 }
 
 HIGH_RISK_KEYWORDS = frozenset([
@@ -381,8 +412,11 @@ HIGH_RISK_KEYWORDS = frozenset([
     "passed out",
     "unconscious",
     "stroke",
+    "stroke symptoms",
     "heart attack",
     "face is drooping",
+    "arm numbness",
+    "severe headache",
     "cannot speak clearly",
     "deep cut",
     "a lot of bleeding",
@@ -404,6 +438,72 @@ HIGH_RISK_KEYWORDS = frozenset([
     "threatened",
     "assault",
     "suspicious death",
+])
+
+MEDICAL_URGENCY_TERMS = frozenset([
+    "chest tightness",
+    "chest me tightness",
+    "left arm pain",
+    "shortness of breath",
+    "arm numbness",
+    "face drooping",
+    "slurred speech",
+    "breathing difficulty",
+    "saans lene mein dikkat",
+    "saans nahi aa rahi",
+    "confusion",
+    "fainting",
+    "pregnancy bleeding",
+    "bleeding ho rahi",
+    "pregnancy me bleeding",
+    "heavy bleeding",
+])
+
+AMBIGUOUS_CROSS_DOMAIN_TERMS = frozenset([
+    "not sure where to start",
+    "both legal and medical",
+    "legal and medical help",
+    "medical or legal",
+    "which kind of help",
+    "doctor or lawyer",
+    "lawyer or doctor",
+])
+
+LEGAL_HIGH_RISK_TERMS = frozenset([
+    "domestic violence",
+    "assault",
+    "blackmail",
+    "kidnap",
+    "stalked",
+    "threatening",
+    "threatened",
+    "police picked up",
+    "wrongful arrest",
+])
+
+LEGAL_PRACTICAL_STEP_TERMS = frozenset([
+    "next legal step",
+    "what should i do legally",
+    "what documents",
+    "process",
+    "procedure",
+    "how do i file",
+    "kaise file",
+    "kaise karu",
+    "legal notice",
+    "complaint",
+    "fir",
+    "consumer court",
+])
+
+URGENT_INTENT_TERMS = frozenset([
+    "urgent",
+    "emergency",
+    "immediately",
+    "asap",
+    "right now",
+    "abhi",
+    "jaldi",
 ])
 
 MEDIUM_RISK_KEYWORDS = frozenset([
@@ -468,12 +568,22 @@ def _phrase_in_text(text: str, phrase: str) -> bool:
 
 def _is_vague_query(text: str) -> bool:
     text_lower = text.lower().strip()
+    normalized_text = re.sub(r"[^a-z0-9\s]", "", text_lower)
     if text_lower in VAGUE_QUERY_TERMS:
         return True
+    if normalized_text in VAGUE_QUERY_TERMS:
+        return True
 
-    generic_terms = ("help", "problem", "issue", "guidance", "situation")
-    word_count = len(text_lower.split())
-    return word_count <= 6 and any(term in text_lower for term in generic_terms)
+    generic_terms = ("help", "problem", "issue", "guidance", "situation", "advice", "kya karun", "guide")
+    word_count = len(normalized_text.split())
+    if word_count <= 6 and any(term in normalized_text for term in generic_terms):
+        return True
+
+    # Slightly longer but still non-specific prompts should be routed as unknown.
+    if word_count <= 12 and any(term in normalized_text for term in ("next step", "urgent guidance", "figure this out")):
+        return True
+
+    return False
 
 
 @traceable(name="pre_screen")
@@ -511,35 +621,65 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     legal_priority_score = _score_matches(query_lower, LEGAL_PRIORITY_TERMS)
     medical_weighted_score = _weighted_score(query_lower, MEDICAL_WEIGHTED_TERMS)
     legal_weighted_score = _weighted_score(query_lower, LEGAL_WEIGHTED_TERMS)
+    urgent_intent = _contains_any(query_lower, URGENT_INTENT_TERMS)
+    has_legal_remedy_intent = _contains_any(query_lower, LEGAL_REMEDY_TERMS)
+
+    if _contains_any(query_lower, LEGAL_PRACTICAL_STEP_TERMS):
+        legal_weighted_score += 2
 
     has_medical = medical_score > 0 or medical_priority_score > 0 or medical_weighted_score > 0
     has_legal = legal_score > 0 or legal_priority_score > 0 or legal_weighted_score > 0
+    is_vague = _is_vague_query(query_lower)
+    has_cross_domain_ambiguity = _contains_any(query_lower, AMBIGUOUS_CROSS_DOMAIN_TERMS)
 
     domain = None
     reasoning = "Keyword-based classification"
 
-    if legal_weighted_score > medical_weighted_score:
+    if has_cross_domain_ambiguity and has_medical and has_legal:
+        domain = "unknown"
+        reasoning = "Explicitly mixed medical/legal query requesting routing help"
+
+    if has_legal and has_legal_remedy_intent and legal_weighted_score >= medical_weighted_score:
+        domain = "legal"
+        reasoning = "Legal remedy terms indicate practical legal intent"
+
+    # Ambiguous mixed-domain prompts should not be over-confidently routed.
+    if domain is None and has_medical and has_legal:
+        weighted_gap = abs(medical_weighted_score - legal_weighted_score)
+        priority_gap = abs(medical_priority_score - legal_priority_score)
+        if weighted_gap <= 2 and priority_gap <= 1:
+            domain = "unknown"
+            reasoning = (
+                "Ambiguous cross-domain query with similar medical/legal evidence "
+                f"(weighted_gap={weighted_gap}, priority_gap={priority_gap})"
+            )
+
+    if domain is None and legal_weighted_score > medical_weighted_score:
         domain = "legal"
         reasoning = f"Weighted legal intent heuristic (legal={legal_weighted_score}, medical={medical_weighted_score})"
-    elif medical_weighted_score > legal_weighted_score:
+    elif domain is None and medical_weighted_score > legal_weighted_score:
         domain = "medical"
         reasoning = f"Weighted medical intent heuristic (medical={medical_weighted_score}, legal={legal_weighted_score})"
-    elif legal_priority_score > medical_priority_score:
+    elif domain is None and legal_priority_score > medical_priority_score:
         domain = "legal"
         reasoning = f"Priority legal heuristic (legal={legal_priority_score}, medical={medical_priority_score})"
-    elif medical_priority_score > legal_priority_score:
+    elif domain is None and medical_priority_score > legal_priority_score:
         domain = "medical"
         reasoning = f"Priority medical heuristic (medical={medical_priority_score}, legal={legal_priority_score})"
-    elif legal_score > medical_score:
+    elif domain is None and legal_score > medical_score:
         domain = "legal"
         reasoning = f"Legal keyword match (legal={legal_score}, medical={medical_score})"
-    elif medical_score > legal_score:
+    elif domain is None and medical_score > legal_score:
         domain = "medical"
         reasoning = f"Medical keyword match (medical={medical_score}, legal={legal_score})"
-    elif len(query.strip()) < 10 or _is_vague_query(query_lower):
+    elif domain is None and (len(query.strip()) < 10 or is_vague):
         domain = "unknown"
 
-    if not domain or (domain == "unknown" and not _is_vague_query(query_lower)) or (not has_medical and not has_legal):
+    if domain is None and is_vague and max(medical_weighted_score, legal_weighted_score, medical_score, legal_score) <= 1:
+        domain = "unknown"
+        reasoning = "Vague query with low-confidence domain evidence"
+
+    if not domain or (domain == "unknown" and not is_vague and (has_medical or has_legal)):
         logger.info("Keyword match inconclusive. Semantic routing temporarily disabled.")
         if not domain:
             domain = "general"
@@ -548,9 +688,22 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         domain = "general"
 
     has_high_risk = _contains_any(query_lower, HIGH_RISK_KEYWORDS)
+    medical_urgent = _contains_any(query_lower, MEDICAL_URGENCY_TERMS)
+    legal_high_risk = _contains_any(query_lower, LEGAL_HIGH_RISK_TERMS)
     has_medium_risk = _contains_any(query_lower, MEDIUM_RISK_KEYWORDS)
+
+    if medical_urgent and domain in {"medical", "unknown"}:
+        has_high_risk = True
+    if legal_high_risk and domain in {"legal", "unknown"}:
+        has_high_risk = True
+    if urgent_intent and (has_medical or has_legal) and not has_high_risk:
+        has_medium_risk = True
+
+    if urgent_intent and domain == "medical" and medical_weighted_score >= 3:
+        has_high_risk = True
+
     if domain == "unknown":
-        has_medium_risk = False
+        has_medium_risk = urgent_intent
 
     if has_high_risk:
         risk_level = "high"

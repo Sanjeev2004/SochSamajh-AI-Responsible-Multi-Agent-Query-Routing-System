@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
@@ -14,7 +15,6 @@ from typing import Any, Callable, TypedDict
 from openai import OpenAI
 
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
-os.environ["OPENAI_API_KEY"] = ""
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
@@ -137,6 +137,7 @@ class EvaluationResult(TypedDict):
     latency_seconds: float
     score: int
     feedback: str
+    judge_scored: bool
 
 
 class BaselinePrediction(TypedDict):
@@ -226,7 +227,7 @@ def _run_router_variant(
 
     if use_critic:
         response = run_critic(response, classification, query)
-    response = run_formatter(response, classification)
+    response = run_formatter(response, classification, query)
     state["response"] = response
     return state
 
@@ -269,6 +270,15 @@ Return strict JSON with:
     return json.loads(response.choices[0].message.content)
 
 
+def _judge_case_ids(cases: list[dict[str, Any]], sample_size: int | None) -> set[str]:
+    if sample_size is None or sample_size <= 0 or sample_size >= len(cases):
+        return {str(case.get("id", "")) for case in cases}
+
+    rng = Random(BASELINE_RANDOM_SEED)
+    sampled_cases = rng.sample(cases, sample_size)
+    return {str(case.get("id", "")) for case in sampled_cases}
+
+
 def evaluate_response(
     case: dict[str, Any],
     settings: Settings,
@@ -277,6 +287,7 @@ def evaluate_response(
     runner_name: str,
     runner: Callable[[str, Settings], GraphState],
     judge_enabled: bool,
+    judge_case_ids: set[str],
 ) -> EvaluationResult:
     started_at = perf_counter()
     result = runner(case["query"], settings)
@@ -295,7 +306,9 @@ def evaluate_response(
 
     score = 0
     feedback = "LLM judge not configured."
-    if judge_enabled and client and settings.openai_api_key:
+    judge_scored = False
+    should_score_with_judge = judge_enabled and str(case.get("id", "")) in judge_case_ids
+    if should_score_with_judge and client and settings.openai_api_key:
         try:
             judge_output = _judge_with_llm(
                 client=client,
@@ -309,6 +322,7 @@ def evaluate_response(
             )
             score = int(judge_output.get("score", 0))
             feedback = str(judge_output.get("feedback", "No feedback"))
+            judge_scored = True
         except Exception as exc:
             logger.error("Judge failed for case %s: %s", case.get("id", "unknown"), exc)
             feedback = "Judge execution failed."
@@ -336,6 +350,7 @@ def evaluate_response(
         "latency_seconds": round(latency_seconds, 4),
         "score": score,
         "feedback": feedback,
+        "judge_scored": judge_scored,
     }
 
 
@@ -408,7 +423,8 @@ def _summarize_results(results: list[EvaluationResult]) -> dict[str, Any]:
     routing_accuracy = mean(int(result["correct_routing"]) for result in results)
     risk_accuracy = mean(int(result["correct_risk"]) for result in results)
     disclaimer_coverage = mean(int(result["disclaimer_present"]) for result in results)
-    avg_score = mean(result["score"] for result in results) if any(result["score"] for result in results) else 0.0
+    scored_results = [result for result in results if result["judge_scored"]]
+    avg_score = mean(result["score"] for result in scored_results) if scored_results else 0.0
 
     expected_domains = [result["expected_domain"] for result in results]
     actual_domains = [result["actual_domain"] for result in results]
@@ -447,6 +463,8 @@ def _summarize_results(results: list[EvaluationResult]) -> dict[str, Any]:
             "risk_macro_f1": risk_report["macro_avg"]["f1"],
             "disclaimer_coverage": round(disclaimer_coverage, 4),
             "average_judge_score": round(avg_score, 4),
+            "judge_cases_scored": len(scored_results),
+            "judge_coverage": round(len(scored_results) / len(results), 4) if results else 0.0,
             "domain_distribution": label_distribution(expected_domains),
             "risk_distribution": label_distribution(expected_risks),
             "latency_seconds": latency_metrics,
@@ -560,15 +578,24 @@ def _baseline_summary(name: str, dataset: list[dict[str, Any]], predictor: Calla
     }
 
 
-def run_evaluation() -> None:
+def run_evaluation(*, llm_judge_enabled_override: bool | None = None, llm_judge_sample_size_override: int | None = None) -> None:
     settings = Settings.load()
     if not DATASET_PATH.exists():
         logger.error("Dataset not found at %s", DATASET_PATH)
         return
 
+    llm_judge_enabled = os.getenv("EVAL_ENABLE_LLM_JUDGE", "true").strip().lower() in {"1", "true", "yes"}
+    llm_judge_sample_size_raw = os.getenv("EVAL_LLM_JUDGE_SAMPLE_SIZE", "").strip()
+    llm_judge_sample_size = int(llm_judge_sample_size_raw) if llm_judge_sample_size_raw else None
+    if llm_judge_enabled_override is not None:
+        llm_judge_enabled = llm_judge_enabled_override
+    if llm_judge_sample_size_override is not None:
+        llm_judge_sample_size = llm_judge_sample_size_override
+
     test_cases = _load_dataset()
+    judge_case_ids = _judge_case_ids(test_cases, llm_judge_sample_size)
     client = None
-    if settings.openai_api_key:
+    if llm_judge_enabled and settings.openai_api_key:
         try:
             client = OpenAI(api_key=settings.openai_api_key)
         except Exception as exc:
@@ -601,7 +628,7 @@ def run_evaluation() -> None:
 
     reports: dict[str, Any] = {}
     for runner_name, runner in ablations.items():
-        judge_enabled = runner_name == "production"
+        judge_enabled = llm_judge_enabled and runner_name == "production"
         results = [
             evaluate_response(
                 case,
@@ -610,6 +637,7 @@ def run_evaluation() -> None:
                 runner_name=runner_name,
                 runner=runner,
                 judge_enabled=judge_enabled,
+                judge_case_ids=judge_case_ids,
             )
             for case in test_cases
         ]
@@ -652,6 +680,12 @@ def run_evaluation() -> None:
             "total_cases": len(test_cases),
             "categories": label_distribution([case.get("category", "uncategorized") for case in test_cases]),
         },
+        "judge_configuration": {
+            "enabled": llm_judge_enabled and client is not None,
+            "requested_sample_size": llm_judge_sample_size,
+            "selected_case_count": len(judge_case_ids) if llm_judge_enabled else 0,
+            "scored_runner": "production",
+        },
         "benchmark_comparison": benchmark_rows,
         "ablation_comparison": ablation_table,
         "runs": reports,
@@ -670,8 +704,33 @@ def run_evaluation() -> None:
     print(f"Disclaimer Coverage: {production['summary']['disclaimer_coverage']:.2%}")
     print(f"P95 Latency: {production['summary']['latency_seconds']['p95_seconds']:.2f}s")
     print(f"Average Judge Score: {production['summary']['average_judge_score']:.1f}/10")
+    print(
+        "Judge Coverage: "
+        f"{production['summary']['judge_cases_scored']}/{production['summary']['total_cases']} "
+        f"({production['summary']['judge_coverage']:.2%})"
+    )
     print(f"Report saved to {REPORT_PATH}")
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the evaluation harness with optional LLM judging controls.")
+    parser.add_argument(
+        "--judge-sample-size",
+        type=int,
+        default=None,
+        help="Number of production cases to score with the LLM judge. Omit to use env/default behavior.",
+    )
+    parser.add_argument(
+        "--disable-llm-judge",
+        action="store_true",
+        help="Skip LLM answer scoring even if OPENAI_API_KEY is configured.",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    run_evaluation()
+    args = _parse_args()
+    run_evaluation(
+        llm_judge_enabled_override=False if args.disable_llm_judge else None,
+        llm_judge_sample_size_override=args.judge_sample_size,
+    )

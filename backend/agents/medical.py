@@ -15,14 +15,26 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
     try:
         # 1. Retrieve Context
         context = get_retrieved_context(query=query, domain="medical", settings=settings)
+        urgency_instruction = ""
+        if classification.risk_level == "high":
+            urgency_instruction = (
+                "Start with immediate triage guidance in 2-3 bullets and clearly advise emergency care if red flags are present. "
+            )
+        elif classification.risk_level == "medium":
+            urgency_instruction = (
+                "Include warning signs that should prompt urgent in-person medical evaluation. "
+            )
 
         # 2. Augment Prompt
         system_prompt = (
             "You are a medical information assistant. Provide educational, high-level information only. "
             "Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. "
             "Use the provided context to answer if relevant. If the context is not relevant, ignore it. "
+            f"{urgency_instruction}"
             f"\n\nContext:\n{context}\n\n"
             "Keep response short, readable, and plain text. Use simple bullet points when needed. "
+            "Prefer this structure when possible: likely explanation, immediate safe actions, and when to seek care. "
+            "For urgent-sounding symptoms, mention warning signs that should prompt emergency or same-day in-person care. "
             "Do not use markdown tables, heading markers, or pipe-separated formatting."
         )
 

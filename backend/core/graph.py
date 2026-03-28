@@ -65,7 +65,7 @@ def build_graph(settings: Settings) -> StateGraph:
         return state
 
     def formatter_node(state: GraphState) -> GraphState:
-        state["response"] = run_formatter(state["response"], state["classification"])
+        state["response"] = run_formatter(state["response"], state["classification"], state["query"])
         return state
 
     def route_after_pre_screen(state: GraphState) -> str:

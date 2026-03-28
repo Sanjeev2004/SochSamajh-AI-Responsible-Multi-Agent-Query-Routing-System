@@ -1,16 +1,18 @@
-import os
+from pathlib import Path
+
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import uuid
 
 # Configuration
-CHROMA_PATH = "backend/rag/chroma_db"
-DATA_PATH = "backend/rag/data"
+RAG_DIR = Path(__file__).resolve().parent
+CHROMA_PATH = RAG_DIR / "chroma_db"
+DATA_PATH = RAG_DIR / "data"
 
 def ingest_data():
     print(f"Initializing ChromaDB at {CHROMA_PATH}...")
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
+    client = chromadb.PersistentClient(path=str(CHROMA_PATH))
     
     # Using the same model as the semantic router for consistency
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2') 
@@ -24,18 +26,18 @@ def ingest_data():
     ids = []
     
     print("Reading data files...")
-    for filename in os.listdir(DATA_PATH):
-        if filename.endswith(".txt"):
-            domain = "medical" if "medical" in filename else "legal"
-            with open(os.path.join(DATA_PATH, filename), "r") as f:
+    for filename in DATA_PATH.iterdir():
+        if filename.suffix == ".txt":
+            domain = "medical" if "medical" in filename.name else "legal"
+            with filename.open("r", encoding="utf-8") as f:
                 content = f.read()
                 # Simple chunking by paragraph (double newline)
                 chunks = [c.strip() for c in content.split('\n\n') if c.strip()]
                 
                 for i, chunk in enumerate(chunks):
                     documents.append(chunk)
-                    metadatas.append({"source": filename, "domain": domain})
-                    ids.append(f"{filename}_{i}")
+                    metadatas.append({"source": filename.name, "domain": domain})
+                    ids.append(f"{filename.name}_{i}")
     
     if not documents:
         print("No data found to ingest!")

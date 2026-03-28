@@ -455,6 +455,31 @@ python evaluation/judge.py
 
 This reads [backend/evaluation/dataset.json](backend/evaluation/dataset.json) and writes a report to [backend/evaluation/report.json](backend/evaluation/report.json).
 
+LLM answer scoring is supported in the production run when `OPENAI_API_KEY` is available. Useful options:
+
+```bash
+# score only 10 production cases with the LLM judge
+cd backend
+python evaluation/judge.py --judge-sample-size 10
+
+# disable LLM judging and run only routing/risk evaluation
+cd backend
+python evaluation/judge.py --disable-llm-judge
+```
+
+You can also use environment variables:
+
+```bash
+EVAL_LLM_JUDGE_SAMPLE_SIZE=10 python evaluation/judge.py
+EVAL_ENABLE_LLM_JUDGE=false python evaluation/judge.py
+```
+
+In the report, check:
+- `runs.production.summary.average_judge_score`
+- `runs.production.summary.judge_cases_scored`
+- `runs.production.summary.judge_coverage`
+- `judge_configuration`
+
 The default dataset is normalized to 300 evaluation cases and uses this schema:
 
 ```json

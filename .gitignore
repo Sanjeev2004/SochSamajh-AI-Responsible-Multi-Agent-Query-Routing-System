@@ -10,3 +10,6 @@ build/
 .DS_Store
 backend/data/
 *.sqlite3
+.pytest_cache/
+.dev-pids.json
+backend/backend/
