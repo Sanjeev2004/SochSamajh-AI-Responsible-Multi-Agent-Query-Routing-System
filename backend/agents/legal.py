@@ -109,7 +109,10 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
             sources=retrieval.sources,
         )
     except Exception as exc:
-        logger.exception("Legal agent fell back to static response: %s", exc)
+        if "LLM calls are disabled" in str(exc):
+            logger.info("Legal agent using offline fallback because LLM calls are disabled.")
+        else:
+            logger.exception("Legal agent fell back to static response: %s", exc)
         fallback = _fallback_legal_response(query, classification, context)
         return AgentResponse(
             content=fallback,

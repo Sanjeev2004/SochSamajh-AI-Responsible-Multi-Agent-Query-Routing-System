@@ -59,6 +59,7 @@ class Settings:
     openai_model: str | None
     openai_timeout_seconds: float
     openai_max_retries: int
+    enable_llm: bool
     enable_retriever: bool
     enable_semantic_router: bool = False
 
@@ -86,6 +87,7 @@ class Settings:
         openai_model = _clean_env_value(os.getenv("OPENAI_MODEL", "gpt-4o"))
         openai_timeout_seconds = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "20").strip() or "20")
         openai_max_retries = int(os.getenv("OPENAI_MAX_RETRIES", "1").strip() or "1")
+        enable_llm = os.getenv("ENABLE_LLM", "false").strip().lower() in {"1", "true", "yes"}
         enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").strip().lower() in {"1", "true", "yes"}
         enable_semantic_router = os.getenv("ENABLE_SEMANTIC_ROUTER", "false").strip().lower() in {"1", "true", "yes"}
         # Parse CORS origins - allow comma-separated string
@@ -103,8 +105,8 @@ class Settings:
                 if origin not in backend_cors_origins:
                     backend_cors_origins.append(origin)
 
-        if not openai_api_key:
-            logger.warning("OPENAI_API_KEY is not set. API calls will fail until provided.")
+        if enable_llm and not openai_api_key:
+            logger.warning("ENABLE_LLM is true but OPENAI_API_KEY is not set. LLM API calls will fail until provided.")
 
         tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2")
         if tracing_enabled is None:
@@ -128,6 +130,7 @@ class Settings:
             openai_model=openai_model,
             openai_timeout_seconds=openai_timeout_seconds,
             openai_max_retries=openai_max_retries,
+            enable_llm=enable_llm,
             enable_retriever=enable_retriever,
             enable_semantic_router=enable_semantic_router,
         )

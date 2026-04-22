@@ -120,7 +120,10 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             sources=retrieval.sources,
         )
     except Exception as exc:
-        logger.exception("Medical agent fell back to static response: %s", exc)
+        if "LLM calls are disabled" in str(exc):
+            logger.info("Medical agent using offline fallback because LLM calls are disabled.")
+        else:
+            logger.exception("Medical agent fell back to static response: %s", exc)
         fallback = _fallback_medical_response(query, classification, context)
         return AgentResponse(
             content=fallback,
