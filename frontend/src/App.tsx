@@ -3,11 +3,12 @@ import {
     Activity,
     AlertTriangle,
     CheckCircle,
+    MessageSquareWarning,
     ThumbsDown,
     ThumbsUp
 } from "lucide-react";
-import { getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
-import { HistoryItem, RouterResponse } from "./types";
+import { getFeedbackSummary, getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
+import { FeedbackSummary, HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
 import { ResponseDisplay } from "./components/ResponseDisplay";
 import { LoadingState } from "./components/LoadingState";
@@ -19,6 +20,7 @@ export default function App() {
     const [currentResult, setCurrentResult] = useState<RouterResponse | null>(null);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [feedbackSent, setFeedbackSent] = useState(false);
+    const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
 
     const currentHistoryItem = useMemo(() => {
         if (!currentResult) return null;
@@ -34,6 +36,21 @@ export default function App() {
 
         fetchHealth();
         const interval = setInterval(fetchHealth, 15000);
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchFeedbackSummary = () =>
+            getFeedbackSummary()
+                .then((data) => mounted && setFeedbackSummary(data))
+                .catch(() => mounted && setFeedbackSummary(null));
+
+        fetchFeedbackSummary();
+        const interval = setInterval(fetchFeedbackSummary, 30000);
         return () => {
             mounted = false;
             clearInterval(interval);
@@ -73,6 +90,8 @@ export default function App() {
                 rating
             );
             setFeedbackSent(true);
+            const summary = await getFeedbackSummary();
+            setFeedbackSummary(summary);
         } catch (feedbackError) {
             console.error("Failed to send feedback", feedbackError);
         }
@@ -206,6 +225,38 @@ export default function App() {
                     </section>
 
                     <aside className="space-y-6">
+                        {feedbackSummary && (
+                            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+                                <div className="mb-4 flex items-center gap-2">
+                                    <MessageSquareWarning className="h-4 w-4 text-amber-300" />
+                                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-200">
+                                        Feedback queue
+                                    </h2>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                        <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Total</p>
+                                        <p className="mt-2 text-2xl font-semibold text-stone-100">{feedbackSummary.total}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                        <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Needs review</p>
+                                        <p className="mt-2 text-2xl font-semibold text-amber-100">
+                                            {feedbackSummary.negative_feedback_queue.length}
+                                        </p>
+                                    </div>
+                                </div>
+                                {feedbackSummary.negative_feedback_queue.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                        {feedbackSummary.negative_feedback_queue.slice(0, 3).map((item) => (
+                                            <div key={`${item.request_id}-${item.timestamp}`} className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-3">
+                                                <p className="line-clamp-2 text-xs leading-5 text-amber-50/90">{item.query_text}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
                         <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
                             <div className="mb-4 flex items-center gap-2">
                                 <CheckCircle className="h-4 w-4 text-emerald-300" />

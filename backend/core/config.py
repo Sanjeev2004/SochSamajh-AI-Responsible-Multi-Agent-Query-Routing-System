@@ -60,6 +60,7 @@ class Settings:
     openai_timeout_seconds: float
     openai_max_retries: int
     enable_retriever: bool
+    enable_semantic_router: bool = False
 
 
     @staticmethod
@@ -86,6 +87,7 @@ class Settings:
         openai_timeout_seconds = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "20").strip() or "20")
         openai_max_retries = int(os.getenv("OPENAI_MAX_RETRIES", "1").strip() or "1")
         enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").strip().lower() in {"1", "true", "yes"}
+        enable_semantic_router = os.getenv("ENABLE_SEMANTIC_ROUTER", "false").strip().lower() in {"1", "true", "yes"}
         # Parse CORS origins - allow comma-separated string
         cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "").strip()
         if cors_origins_str:
@@ -127,4 +129,5 @@ class Settings:
             openai_timeout_seconds=openai_timeout_seconds,
             openai_max_retries=openai_max_retries,
             enable_retriever=enable_retriever,
+            enable_semantic_router=enable_semantic_router,
         )

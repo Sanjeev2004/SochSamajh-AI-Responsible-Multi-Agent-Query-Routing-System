@@ -45,6 +45,10 @@ class FeedbackRequest(BaseModel):
     request_id: str = Field(min_length=1, max_length=128)
 
 
+def _row_to_dict(row: sqlite3.Row) -> dict:
+    return {key: row[key] for key in row.keys()}
+
+
 @router.post("/api/feedback")
 async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
     entry = (
@@ -69,3 +73,58 @@ async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
         raise HTTPException(status_code=500, detail="Failed to store feedback.") from exc
 
     return {"status": "success", "message": "Feedback received"}
+
+
+@router.get("/api/feedback/summary")
+async def feedback_summary() -> dict:
+    _ensure_db()
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+        total = connection.execute("SELECT COUNT(*) AS count FROM feedback").fetchone()["count"]
+        by_rating = connection.execute(
+            """
+            SELECT rating, COUNT(*) AS count
+            FROM feedback
+            GROUP BY rating
+            ORDER BY rating
+            """
+        ).fetchall()
+        recent_negative = connection.execute(
+            """
+            SELECT timestamp, request_id, query_text, response_text, rating
+            FROM feedback
+            WHERE rating = 'down'
+            ORDER BY timestamp DESC
+            LIMIT 10
+            """
+        ).fetchall()
+
+    return {
+        "total": total,
+        "by_rating": [_row_to_dict(row) for row in by_rating],
+        "negative_feedback_queue": [_row_to_dict(row) for row in recent_negative],
+    }
+
+
+@router.get("/api/feedback/failures")
+async def feedback_failures(limit: int = 25) -> dict:
+    _ensure_db()
+    safe_limit = max(1, min(limit, 100))
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """
+            SELECT timestamp, request_id, query_text, response_text
+            FROM feedback
+            WHERE rating = 'down'
+            ORDER BY timestamp DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+
+    return {
+        "count": len(rows),
+        "items": [_row_to_dict(row) for row in rows],
+        "use": "Review these cases as candidates for new regression tests, dataset labels, or classifier/RAG tuning.",
+    }

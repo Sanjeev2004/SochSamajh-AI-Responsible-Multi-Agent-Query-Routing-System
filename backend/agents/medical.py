@@ -5,7 +5,7 @@ from langsmith import traceable
 from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from services.retrieval_service import get_retrieved_context
+from services.retrieval_service import get_retrieval_result
 
 MEDICAL_DISCLAIMER = "This is general educational information and not medical advice. Please consult a qualified healthcare professional."
 
@@ -14,15 +14,17 @@ MEDICAL_DISCLAIMER = "This is general educational information and not medical ad
 def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
         # 1. Retrieve Context
-        context = get_retrieved_context(query=query, domain="medical", settings=settings)
+        retrieval = get_retrieval_result(query=query, domain="medical", settings=settings)
+        context = retrieval.context
         urgency_instruction = ""
         if classification.risk_level == "high":
             urgency_instruction = (
-                "Start with immediate triage guidance in 2-3 bullets and clearly advise emergency care if red flags are present. "
+                "Start with an 'Immediate action' section in 2-3 bullets. "
+                "Clearly advise emergency care for red flags, and include one 'What not to do' bullet when relevant. "
             )
         elif classification.risk_level == "medium":
             urgency_instruction = (
-                "Include warning signs that should prompt urgent in-person medical evaluation. "
+                "Include a 'Warning signs' section that should prompt urgent in-person medical evaluation. "
             )
 
         # 2. Augment Prompt
@@ -49,6 +51,7 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             content=content,
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
+            sources=retrieval.sources,
         )
     except Exception as exc:
         logger.exception("Medical agent fell back to static response: %s", exc)

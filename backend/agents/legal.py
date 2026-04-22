@@ -5,7 +5,7 @@ from langsmith import traceable
 from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from services.retrieval_service import get_retrieved_context
+from services.retrieval_service import get_retrieval_result
 
 LEGAL_DISCLAIMER = (
     "This is general legal information, not legal advice. Laws vary by jurisdiction; consult a licensed attorney."
@@ -16,11 +16,12 @@ LEGAL_DISCLAIMER = (
 def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
         # 1. Retrieve Context
-        context = get_retrieved_context(query=query, domain="legal", settings=settings)
+        retrieval = get_retrieval_result(query=query, domain="legal", settings=settings)
+        context = retrieval.context
         urgency_instruction = ""
         if classification.risk_level == "high":
             urgency_instruction = (
-                "If user may be in immediate danger, prioritize immediate safety and emergency contact guidance first. "
+                "If user may be in immediate danger, start with an 'Immediate safety' section before legal process details. "
             )
 
         # 2. Augment Prompt with retrieved context
@@ -47,6 +48,7 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
             content=content,
             disclaimers=[LEGAL_DISCLAIMER],
             safety_notes=[],
+            sources=retrieval.sources,
         )
     except Exception as exc:
         logger.exception("Legal agent fell back to static response: %s", exc)
