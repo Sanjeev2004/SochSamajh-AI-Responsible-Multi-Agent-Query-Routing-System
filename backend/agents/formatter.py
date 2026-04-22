@@ -88,6 +88,7 @@ def _inject_medical_urgency(content: str) -> str:
             "If symptoms are severe or getting worse, call local emergency services now.",
             "Do not drive yourself if you feel faint, breathless, or have chest pain.",
             "Seek urgent in-person evaluation at the nearest emergency department.",
+            "Do not delay emergency care while waiting for an online answer.",
         ],
     )
 
@@ -119,6 +120,7 @@ def _inject_legal_practical_steps(content: str, high_risk: bool) -> str:
     ]
     if high_risk:
         steps.insert(0, "If there is immediate threat or violence, contact emergency services/police right away.")
+        steps.insert(1, "Move to a safer place if possible and contact a trusted person before handling paperwork.")
     return _append_lines(content, "Practical next steps:", steps)
 
 
@@ -164,4 +166,5 @@ def run_formatter(response: AgentResponse, classification: ClassificationOutput,
         content=content,
         disclaimers=disclaimers,
         safety_notes=response.safety_notes,
+        sources=response.sources,
     )

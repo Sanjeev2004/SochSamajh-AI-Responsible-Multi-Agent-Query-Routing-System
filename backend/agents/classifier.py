@@ -560,6 +560,12 @@ def _weighted_score(text: str, weighted_phrases: dict[str, int]) -> int:
     return sum(weight for phrase, weight in weighted_phrases.items() if _phrase_in_text(text_lower, phrase))
 
 
+def _matched_terms(text: str, phrases: Iterable[str], limit: int = 8) -> list[str]:
+    text_lower = text.lower()
+    matches = [phrase for phrase in phrases if _phrase_in_text(text_lower, phrase)]
+    return sorted(matches, key=lambda phrase: (-len(phrase), phrase))[:limit]
+
+
 def _phrase_in_text(text: str, phrase: str) -> bool:
     escaped_phrase = re.escape(phrase.lower()).replace(r"\ ", r"\s+")
     pattern = rf"(?<!\w){escaped_phrase}(?!\w)"
@@ -589,6 +595,7 @@ def _is_vague_query(text: str) -> bool:
 @traceable(name="pre_screen")
 def pre_screen_query(query: str) -> ClassificationOutput | None:
     if _contains_any(query, SELF_HARM_KEYWORDS):
+        triggers = _matched_terms(query, SELF_HARM_KEYWORDS)
         return ClassificationOutput(
             domain="general",
             risk_level="high",
@@ -596,9 +603,14 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
             self_harm=True,
             illegal_request=False,
             reasoning="Pre-screen detected self-harm intent.",
+            confidence=0.98,
+            triggered_terms=triggers,
+            alternative_domains={"general": 0.98, "medical": 0.1, "legal": 0.05},
+            explanation="The pre-screen matched self-harm language, so the normal router was bypassed for a safety response.",
         )
 
     if _contains_any(query, ILLEGAL_KEYWORDS):
+        triggers = _matched_terms(query, ILLEGAL_KEYWORDS)
         return ClassificationOutput(
             domain="legal",
             risk_level="high",
@@ -606,6 +618,10 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
             self_harm=False,
             illegal_request=True,
             reasoning="Pre-screen detected illegal intent.",
+            confidence=0.96,
+            triggered_terms=triggers,
+            alternative_domains={"legal": 0.96, "general": 0.2, "medical": 0.05},
+            explanation="The pre-screen matched illegal-intent language, so the system refused unsafe help and offered lawful alternatives.",
         )
 
     return None
@@ -680,8 +696,19 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         reasoning = "Vague query with low-confidence domain evidence"
 
     if not domain or (domain == "unknown" and not is_vague and (has_medical or has_legal)):
-        logger.info("Keyword match inconclusive. Semantic routing temporarily disabled.")
-        if not domain:
+        semantic_domain = None
+        if settings.enable_semantic_router:
+            try:
+                from agents.router_semantic import semantic_router
+
+                semantic_domain = semantic_router.predict(query, threshold=0.42)
+            except Exception as exc:  # pragma: no cover
+                logger.info("Semantic routing unavailable; using heuristic fallback: %s", exc)
+
+        if semantic_domain and domain != "unknown":
+            domain = semantic_domain
+            reasoning = f"Semantic router fallback selected {semantic_domain}"
+        elif not domain:
             domain = "general"
 
     if not domain:
@@ -691,6 +718,18 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     medical_urgent = _contains_any(query_lower, MEDICAL_URGENCY_TERMS)
     legal_high_risk = _contains_any(query_lower, LEGAL_HIGH_RISK_TERMS)
     has_medium_risk = _contains_any(query_lower, MEDIUM_RISK_KEYWORDS)
+    triggered_terms = sorted(
+        set(
+            _matched_terms(query_lower, MEDICAL_KEYWORDS)
+            + _matched_terms(query_lower, LEGAL_KEYWORDS)
+            + _matched_terms(query_lower, HIGH_RISK_KEYWORDS)
+            + _matched_terms(query_lower, MEDIUM_RISK_KEYWORDS)
+            + _matched_terms(query_lower, MEDICAL_URGENCY_TERMS)
+            + _matched_terms(query_lower, LEGAL_HIGH_RISK_TERMS)
+            + _matched_terms(query_lower, LEGAL_PRACTICAL_STEP_TERMS)
+        ),
+        key=lambda phrase: (-len(phrase), phrase),
+    )[:10]
 
     if medical_urgent and domain in {"medical", "unknown"}:
         has_high_risk = True
@@ -713,6 +752,37 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         risk_level = "low"
 
     needs_disclaimer = domain in ["medical", "legal"]
+    domain_scores = {
+        "medical": round(float(medical_weighted_score + medical_priority_score + medical_score), 3),
+        "legal": round(float(legal_weighted_score + legal_priority_score + legal_score), 3),
+        "general": 1.0 if not has_medical and not has_legal and not is_vague else 0.0,
+        "unknown": 2.0 if domain == "unknown" or is_vague or has_cross_domain_ambiguity else 0.0,
+    }
+    max_score = max(domain_scores.values()) if domain_scores else 0.0
+    if max_score > 0:
+        normalized_scores = {key: round(value / max_score, 3) for key, value in domain_scores.items()}
+    else:
+        normalized_scores = {"general": 1.0, "medical": 0.0, "legal": 0.0, "unknown": 0.0}
+
+    sorted_scores = sorted(normalized_scores.values(), reverse=True)
+    score_gap = sorted_scores[0] - sorted_scores[1] if len(sorted_scores) > 1 else sorted_scores[0]
+    if domain == "unknown":
+        confidence = 0.45 if triggered_terms else 0.35
+    elif max_score == 0:
+        confidence = 0.55
+    else:
+        confidence = min(0.95, max(0.52, 0.58 + score_gap * 0.35))
+    if has_high_risk or pre_screen_query(query) is not None:
+        confidence = max(confidence, 0.82)
+
+    explanation_parts = [reasoning]
+    if triggered_terms:
+        explanation_parts.append("Matched terms: " + ", ".join(triggered_terms[:6]))
+    if domain == "unknown":
+        explanation_parts.append("The router avoided over-confident routing and asks clarification instead.")
+    elif domain in {"medical", "legal"}:
+        explanation_parts.append(f"The strongest evidence points to the {domain} route.")
+    explanation = " ".join(explanation_parts)
 
     result = ClassificationOutput(
         domain=domain,
@@ -721,6 +791,10 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         self_harm=_contains_any(query, SELF_HARM_KEYWORDS),
         illegal_request=_contains_any(query, ILLEGAL_KEYWORDS),
         reasoning=f"{reasoning}: domain={domain}, risk={risk_level}",
+        confidence=round(confidence, 2),
+        triggered_terms=triggered_terms,
+        alternative_domains=normalized_scores,
+        explanation=explanation,
     )
 
     if result.domain == "general" and _contains_any(query, MEDICAL_HINTS | LEGAL_HINTS):

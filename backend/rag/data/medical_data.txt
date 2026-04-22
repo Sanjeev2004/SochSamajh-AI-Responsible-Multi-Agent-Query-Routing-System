@@ -3,3 +3,15 @@ Dr. John Smith, M.D. - Type 2 Diabetes Management
 
 Dr. Emily Chen, M.D. - Migraine and Headaches
 "Migraines are severe headaches often accompanied by nausea, vomiting, and sensitivity to light and sound. Triggers can include stress, certain foods, and hormonal changes. Over-the-counter pain relievers (NSAIDs) can help, but prescription triptans are often needed for severe cases. Rest in a dark, quiet room is recommended."
+
+Emergency Triage Reference - Chest Pain and Breathing Difficulty
+"Chest pain with sweating, left arm pain, fainting, shortness of breath, blue lips, confusion, or severe weakness can be a medical emergency. People with these symptoms should seek emergency care immediately and should not drive themselves."
+
+Public Health Note - Dog Bite and Rabies Risk
+"Dog bites should be cleaned with running water and soap, and urgent medical evaluation is important when vaccine status is unknown. Rabies post-exposure prophylaxis is time-sensitive and should be assessed by a healthcare professional."
+
+Maternal Health Safety Note - Pregnancy Bleeding
+"Bleeding during pregnancy, severe abdominal pain, fainting, fever, or reduced fetal movement should be assessed urgently by a qualified healthcare professional or emergency department."
+
+Infectious Disease Note - Dengue Warning Signs
+"Dengue can cause fever, severe body pain, headache, rash, nausea, and weakness. Warning signs include severe abdominal pain, persistent vomiting, bleeding, lethargy, restlessness, and difficulty breathing; these need urgent medical care."

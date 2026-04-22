@@ -16,6 +16,11 @@ from core.config import Settings, logger
 from core.state import GraphState, SafetyFlags
 
 
+def _trace(state: GraphState, step: str) -> None:
+    state.setdefault("pipeline_trace", [])
+    state["pipeline_trace"].append(step)
+
+
 def _apply_safety_flags(state: GraphState) -> GraphState:
     classification = state["classification"]
     flags = SafetyFlags(
@@ -29,6 +34,7 @@ def _apply_safety_flags(state: GraphState) -> GraphState:
 
 def build_graph(settings: Settings) -> StateGraph:
     def pre_screen_node(state: GraphState) -> GraphState:
+        _trace(state, "pre_screen")
         query = state["query"]
         pre_screen = pre_screen_query(query)
         if pre_screen:
@@ -38,6 +44,7 @@ def build_graph(settings: Settings) -> StateGraph:
         return state
 
     def classifier_node(state: GraphState) -> GraphState:
+        _trace(state, "classifier")
         query = state["query"]
         classification = classify_intent(query, settings)
         state["classification"] = classification
@@ -45,26 +52,32 @@ def build_graph(settings: Settings) -> StateGraph:
         return state
 
     def medical_node(state: GraphState) -> GraphState:
+        _trace(state, "medical_agent")
         state["response"] = run_medical_agent(state["query"], state["classification"], settings)
         return state
 
     def legal_node(state: GraphState) -> GraphState:
+        _trace(state, "legal_agent")
         state["response"] = run_legal_agent(state["query"], state["classification"], settings)
         return state
 
     def general_node(state: GraphState) -> GraphState:
+        _trace(state, "general_agent")
         state["response"] = run_general_agent(state["query"], state["classification"], settings)
         return state
 
     def safety_node(state: GraphState) -> GraphState:
+        _trace(state, "safety_agent")
         state["response"] = run_safety_agent(state["query"], state["classification"])
         return state
 
     def critic_node(state: GraphState) -> GraphState:
+        _trace(state, "critic")
         state["response"] = run_critic(state["response"], state["classification"], state["query"])
         return state
 
     def formatter_node(state: GraphState) -> GraphState:
+        _trace(state, "formatter")
         state["response"] = run_formatter(state["response"], state["classification"], state["query"])
         return state
 
@@ -119,6 +132,7 @@ def run_router(query: str, settings: Settings | None = None) -> GraphState:
     initial_state: GraphState = {
         "query": query,
         "request_id": request_id,
+        "pipeline_trace": [],
     }
     result = compiled_graph.invoke(initial_state)
     latency_seconds = round(time.perf_counter() - started_at, 4)
