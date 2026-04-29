@@ -10,8 +10,11 @@ $backendDir = Join-Path $repoRoot "backend"
 $frontendDir = Join-Path $repoRoot "frontend"
 
 $backendPython = Join-Path $backendDir "venv\Scripts\python.exe"
-$frontendNode = "node"
-$frontendEntry = ".\node_modules\vite\bin\vite.js"
+$frontendNode = "node.exe"
+$npmCommand = "npm.cmd"
+$frontendNodeModules = Join-Path $frontendDir "node_modules"
+$frontendLockFile = Join-Path $frontendDir "package-lock.json"
+$frontendViteEntry = Join-Path $frontendNodeModules "vite\bin\vite.js"
 
 $backendLog = Join-Path $backendDir "backend-dev.log"
 $backendErrLog = Join-Path $backendDir "backend-dev.err.log"
@@ -52,8 +55,63 @@ function Ensure-Exists {
     }
 }
 
+function Ensure-CommandExists {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Command,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
+        throw "$Label not found on PATH: $Command"
+    }
+}
+
+function Ensure-FrontendDependencies {
+    if (Test-Path $frontendNodeModules) {
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Frontend dependencies missing. Installing with npm..." -ForegroundColor Yellow
+
+    $installArgs = if (Test-Path $frontendLockFile) {
+        @("ci")
+    } else {
+        @("install")
+    }
+
+    $installProcess = Start-Process `
+        -FilePath $npmCommand `
+        -ArgumentList $installArgs `
+        -WorkingDirectory $frontendDir `
+        -NoNewWindow `
+        -Wait `
+        -PassThru
+
+    if ($installProcess.ExitCode -ne 0) {
+        throw "Frontend dependency install failed. Run '$npmCommand $($installArgs -join ' ')' inside $frontendDir and check the output. On Windows this is often caused by OneDrive file locking, antivirus, or insufficient permissions."
+    }
+
+    if (-not (Test-Path $frontendNodeModules)) {
+        throw "Frontend dependencies still missing after install: $frontendNodeModules"
+    }
+}
+
 Ensure-Exists -Path $backendPython -Label "Backend virtualenv Python"
-Ensure-Exists -Path (Join-Path $frontendDir $frontendEntry.TrimStart(".\")) -Label "Frontend Vite entry"
+Ensure-CommandExists -Command $frontendNode -Label "Node.js"
+Ensure-CommandExists -Command $npmCommand -Label "npm"
+Ensure-Exists -Path (Join-Path $frontendDir "package.json") -Label "Frontend package.json"
+
+Push-Location $frontendDir
+try {
+    Ensure-FrontendDependencies
+} finally {
+    Pop-Location
+}
+
+Ensure-Exists -Path $frontendViteEntry -Label "Frontend Vite entry"
 
 Write-Host ""
 Write-Host "Starting backend..." -ForegroundColor Cyan
@@ -68,7 +126,7 @@ $backendProcess = Start-Process `
 Write-Host "Starting frontend..." -ForegroundColor Cyan
 $frontendProcess = Start-Process `
     -FilePath $frontendNode `
-    -ArgumentList $frontendEntry, "--host", "127.0.0.1", "--port", "$FrontendPort" `
+    -ArgumentList $frontendViteEntry, "--host", "127.0.0.1", "--port", "$FrontendPort" `
     -WorkingDirectory $frontendDir `
     -RedirectStandardOutput $frontendLog `
     -RedirectStandardError $frontendErrLog `
