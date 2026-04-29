@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { RouterResponse } from "../types";
+import type { FeedbackSummary, RouterResponse } from "../types";
 
 export const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -30,4 +30,9 @@ export async function sendFeedback(requestId: string, query: string, response: s
         response,
         rating
     });
+}
+
+export async function getFeedbackSummary(): Promise<FeedbackSummary> {
+    const response = await api.get("/api/feedback/summary");
+    return response.data as FeedbackSummary;
 }

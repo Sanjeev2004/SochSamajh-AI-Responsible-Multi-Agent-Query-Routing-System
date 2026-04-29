@@ -5,22 +5,81 @@ from langsmith import traceable
 from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from services.retrieval_service import get_retrieved_context
+from services.retrieval_service import get_retrieval_result
 
 LEGAL_DISCLAIMER = (
     "This is general legal information, not legal advice. Laws vary by jurisdiction; consult a licensed attorney."
 )
 
 
+def _context_hint(context: str) -> str:
+    if not context.strip():
+        return ""
+    first_line = next((line.strip() for line in context.splitlines() if line.strip()), "")
+    if not first_line:
+        return ""
+    return f"\n\nRelevant retrieved note:\n- {first_line[:260]}"
+
+
+def _fallback_legal_response(query: str, classification: ClassificationOutput, context: str) -> str:
+    query_lower = query.lower()
+    lines: list[str] = []
+
+    if classification.risk_level == "high":
+        lines.extend(
+            [
+                "Immediate safety:",
+                "- If there is violence, threat, stalking, wrongful detention, or immediate danger, contact emergency services or local police first.",
+                "- Move to a safer place if possible and contact a trusted person before focusing on documents.",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "General legal explanation:",
+                "- This looks like a practical legal-process question. The exact remedy depends on your city/state, documents, deadlines, and facts.",
+                "",
+            ]
+        )
+
+    steps = [
+        "Create a short timeline with dates, amounts, people involved, and what was promised or refused.",
+        "Collect proof: agreement, payment records, messages, emails, photos, notices, receipts, and ID/reference numbers.",
+        "Send important communication in writing and keep delivery proof or acknowledgement.",
+        "Speak with a licensed local lawyer or legal aid clinic before filing formal proceedings.",
+    ]
+    if any(term in query_lower for term in ("landlord", "deposit", "rent", "tenant")):
+        steps.insert(0, "For a deposit dispute, check the rent agreement clause, payment proof, handover condition photos, and written demands already sent.")
+    if "fir" in query_lower or "police" in query_lower:
+        steps.insert(0, "For FIR/police issues, keep a copy of your written complaint and note the police station, date, officer name, and diary/reference number if given.")
+    if any(term in query_lower for term in ("salary", "termination", "employer")):
+        steps.insert(0, "For employment disputes, preserve offer letter, payslips, attendance proof, termination notice, and work communication.")
+
+    lines.append("Practical next steps:")
+    lines.extend(f"- {step}" for step in steps[:5])
+    lines.extend(
+        [
+            "",
+            "What to avoid:",
+            "- Do not threaten, forge documents, delete messages, or rely only on verbal communication.",
+            "- Do not miss limitation periods or official deadlines; ask a local professional if timing matters.",
+        ]
+    )
+
+    return "\n".join(lines).strip() + _context_hint(context)
+
+
 @traceable(name="legal_agent")
 def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
+    retrieval = get_retrieval_result(query=query, domain="legal", settings=settings)
+    context = retrieval.context
     try:
         # 1. Retrieve Context
-        context = get_retrieved_context(query=query, domain="legal", settings=settings)
         urgency_instruction = ""
         if classification.risk_level == "high":
             urgency_instruction = (
-                "If user may be in immediate danger, prioritize immediate safety and emergency contact guidance first. "
+                "If user may be in immediate danger, start with an 'Immediate safety' section before legal process details. "
             )
 
         # 2. Augment Prompt with retrieved context
@@ -47,17 +106,17 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
             content=content,
             disclaimers=[LEGAL_DISCLAIMER],
             safety_notes=[],
+            sources=retrieval.sources,
         )
     except Exception as exc:
-        logger.exception("Legal agent fell back to static response: %s", exc)
-        fallback = (
-            "I can provide general legal information and concepts. However, laws vary significantly by jurisdiction "
-            "and your specific circumstances matter. For advice applicable to your situation, please consult with "
-            "a licensed attorney in your area who can review the specific details of your case and provide guidance "
-            "based on applicable local laws."
-        )
+        if "LLM calls are disabled" in str(exc):
+            logger.info("Legal agent using offline fallback because LLM calls are disabled.")
+        else:
+            logger.exception("Legal agent fell back to static response: %s", exc)
+        fallback = _fallback_legal_response(query, classification, context)
         return AgentResponse(
             content=fallback,
             disclaimers=[LEGAL_DISCLAIMER],
             safety_notes=[],
+            sources=retrieval.sources,
         )

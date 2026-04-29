@@ -17,15 +17,17 @@ This document prioritizes improvements from RESEARCH_IMPROVEMENTS.md based on:
 ### ✅ Priority 1: Expand Evaluation Dataset (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
 
 - [x] Expand dataset.json to 300 test cases with normalized labels and flags
-- [ ] Add these categories:
-  - [ ] 50 edge cases (medical+legal overlap)
-  - [ ] 30 adversarial examples (jailbreak attempts)
-  - [ ] 50 India-specific queries (IPC sections, dengue, etc.)
-  - [ ] 20 multilingual queries (Hindi, Hinglish)
-  - [ ] 50 high-risk scenarios
-  - [ ] 100 additional standard cases
+- [x] Add these categories:
+  - [x] 50 edge cases (medical+legal overlap)
+  - [x] 30 adversarial examples (jailbreak attempts)
+  - [x] 50 India-specific queries (IPC sections, dengue, etc.)
+  - [x] 20 multilingual queries (Hindi, Hinglish)
+  - [x] 50 high-risk scenarios
+  - [x] 90 standard cases plus 10 ambiguous cases for routing stress tests
 
 **Why High Impact:** Shows thoroughness. Easy to point to in paper/presentation.
+
+**Status note:** Implemented through `backend/evaluation/dataset_expander.py`, with the current normalized dataset written to `backend/evaluation/dataset.json`.
 
 **Quick Implementation:**
 
@@ -40,16 +42,18 @@ cp dataset.json dataset_backup.json
 
 ### ✅ Priority 2: Implement Comprehensive Metrics (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
 
-- [ ] Create `backend/evaluation/metrics.py`
-- [ ] Calculate:
-  - [ ] Precision, Recall, F1 per domain
-  - [ ] Confusion matrix
-  - [ ] Risk assessment accuracy
-  - [ ] Safety detection metrics (false positive rate)
-  - [ ] Response time (P50, P95, P99)
-- [ ] Generate evaluation report with visualizations
+- [x] Create `backend/evaluation/metrics.py`
+- [x] Calculate:
+  - [x] Precision, Recall, F1 per domain
+  - [x] Confusion matrix
+  - [x] Risk assessment accuracy
+  - [x] Safety detection metrics (false positive rate)
+  - [x] Response time (P50, P95, P99)
+- [x] Generate evaluation report with visualizations
 
 **Why High Impact:** Core of any ML research project. Shows you understand evaluation.
+
+**Status note:** Metrics and report generation are implemented in `backend/evaluation/metrics.py`, `backend/evaluation/judge.py`, and `backend/evaluation/visualizations.py`.
 
 **Quick Start:**
 
@@ -62,14 +66,16 @@ cp dataset.json dataset_backup.json
 
 ### ✅ Priority 3: Baseline Comparisons (⭐⭐⭐⭐⭐, ⏱️ Medium, 📊 High)
 
-- [ ] Implement 3 baselines:
-  - [ ] Simple keyword-based routing
-  - [ ] Direct GPT-4 (no routing)
-  - [ ] Random routing (worst case)
+- [x] Implement 3 baselines:
+  - [x] Simple keyword-based routing
+  - [x] Direct GPT-style LLM baseline (no routing)
+  - [x] Random routing (worst case)
 - [ ] Run all baselines on expanded dataset
-- [ ] Create comparison table
+- [x] Create comparison table
 
 **Why High Impact:** Research requires showing your method is better than alternatives.
+
+**Status note:** Keyword and random baselines are already populated in the report. The direct-LLM baseline is implemented in `backend/evaluation/judge.py` and can be run with `--enable-direct-llm-baseline` when `OPENAI_API_KEY` is available.
 
 **Quick Implementation:**
 
@@ -82,15 +88,17 @@ cp dataset.json dataset_backup.json
 
 ### ✅ Priority 4: Ablation Studies (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
 
-- [ ] Test system with components disabled:
-  - [ ] Full system (baseline)
-  - [ ] Without RAG
-  - [ ] Without critic agent
-  - [ ] Without pre-screening
-  - [ ] Only classification (no agents)
-- [ ] Show each component's contribution
+- [x] Test system with components disabled:
+  - [x] Full system (baseline)
+  - [x] Without RAG
+  - [x] Without critic agent
+  - [x] Without pre-screening
+  - [x] Only classification (no agents)
+- [x] Show each component's contribution
 
 **Why High Impact:** Proves each part of your system has value.
+
+**Status note:** Ablation support is implemented in `backend/evaluation/judge.py` and reported in `backend/evaluation/report.json`.
 
 **Quick Implementation:**
 
@@ -222,8 +230,8 @@ pip install sentence-transformers==2.2.2
 
 - [ ] System architecture diagram
 - [ ] Query flow diagram
-- [ ] Confusion matrices
-- [ ] Performance comparison charts
+- [x] Confusion matrices
+- [x] Performance comparison charts
 - [ ] Example query traces
 
 **Tools:**
@@ -345,15 +353,15 @@ Your project is research-ready when you can answer:
 
 - [ ] Can explain system architecture in 2 minutes
 - [ ] Can show live demo without errors
-- [ ] Have 5+ compelling visualizations
-- [ ] Have quantitative results to cite
+- [x] Have 5+ compelling visualizations
+- [x] Have quantitative results to cite
 
 ### ✅ Documentation Quality
 
-- [ ] README is comprehensive
+- [x] README is comprehensive
 - [ ] Code is well-commented
 - [ ] Research paper draft complete
-- [ ] Have reproducible evaluation scripts
+- [x] Have reproducible evaluation scripts
 
 ---
 

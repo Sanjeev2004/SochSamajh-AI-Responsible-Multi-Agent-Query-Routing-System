@@ -12,6 +12,9 @@ def call_llm(
     max_tokens: int = 512
 ) -> str:
     """Shared helper to call OpenAI LLM."""
+    if not settings.enable_llm:
+        raise RuntimeError("LLM calls are disabled. Set ENABLE_LLM=true to use the OpenAI API.")
+
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured.")
 

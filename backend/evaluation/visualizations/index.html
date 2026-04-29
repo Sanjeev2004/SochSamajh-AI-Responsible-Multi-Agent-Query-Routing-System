@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Evaluation Visual Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #020617; color: #e2e8f0; margin: 0; padding: 32px; }
+    h1, h2 { color: #f8fafc; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 18px; padding: 20px; margin-bottom: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .stat { background: #111827; border-radius: 12px; padding: 14px; }
+    img { width: 100%; max-width: 920px; border-radius: 18px; border: 1px solid #1e293b; display: block; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
+    th { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <h1>Evaluation Visual Report</h1>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><strong>Routing Accuracy</strong><br />78.0%</div>
+      <div class="stat"><strong>Risk Accuracy</strong><br />57.7%</div>
+      <div class="stat"><strong>Routing Macro F1</strong><br />75.4%</div>
+      <div class="stat"><strong>P95 Latency</strong><br />3.89s</div>
+    </div>
+  </div>
+  <div class="card"><h2>Benchmark Comparison</h2><img src="benchmark_comparison.svg" alt="Benchmark comparison chart" /></div>
+  <div class="card"><h2>Ablation Comparison</h2><img src="ablation_comparison.svg" alt="Ablation comparison chart" /></div>
+  <div class="card"><h2>Domain Confusion Matrix</h2><img src="domain_confusion_matrix.svg" alt="Domain confusion matrix" /></div>
+  <div class="card"><h2>Risk Confusion Matrix</h2><img src="risk_confusion_matrix.svg" alt="Risk confusion matrix" /></div>
+  <div class="card">
+    <h2>Benchmark Table</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Routing Accuracy</th><th>Risk Accuracy</th><th>High-Risk F1</th></tr></thead>
+      <tbody>
+        <tr><td>production_router</td><td>78.0%</td><td>57.7%</td><td>59.9%</td></tr><tr><td>direct_llm_baseline</td><td>unavailable</td><td>-</td><td>-</td></tr><tr><td>keyword_baseline</td><td>50.0%</td><td>45.7%</td><td>29.9%</td></tr><tr><td>random_baseline</td><td>24.3%</td><td>35.3%</td><td>38.7%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Ablation Table</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Routing Accuracy</th><th>Risk Accuracy</th><th>High-Risk F1</th></tr></thead>
+      <tbody>
+        <tr><td>production</td><td>78.0%</td><td>57.7%</td><td>59.9%</td></tr><tr><td>no_pre_screen</td><td>74.3%</td><td>50.7%</td><td>38.5%</td></tr><tr><td>no_critic</td><td>78.0%</td><td>57.7%</td><td>59.9%</td></tr><tr><td>no_retriever</td><td>78.0%</td><td>57.7%</td><td>59.9%</td></tr><tr><td>only_classification</td><td>78.0%</td><td>57.7%</td><td>59.9%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

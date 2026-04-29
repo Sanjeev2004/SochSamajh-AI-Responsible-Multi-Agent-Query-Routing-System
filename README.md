@@ -173,6 +173,7 @@ Update `backend/.env` with:
 
 - `OPENAI_API_KEY` (required)
 - `OPENAI_MODEL` (optional, default is `gpt-4o`)
+- `ENABLE_LLM` (optional, default is `false`; set `true` only when you want to spend API credits)
 - `BACKEND_CORS_ORIGINS` (optional, comma-separated)
 
 **Note:** The `.env.example` includes both OpenAI and OpenRouter configurations. Use OpenAI variables for standard deployment, or uncomment OpenRouter variables if using that service.
@@ -523,6 +524,7 @@ The application uses the following environment variables:
 | ---------------------- | ------------------------------- | ----------------------- | -------- |
 | `OPENAI_API_KEY`       | OpenAI API key for LLM calls    | -                       | ✅       |
 | `OPENAI_MODEL`         | OpenAI model to use             | `gpt-4o`                | ❌       |
+| `ENABLE_LLM`           | Enable live OpenAI API calls    | `false`                 | ❌       |
 | `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` | ❌       |
 | `LANGSMITH_API_KEY`    | LangSmith API key for tracing   | -                       | ❌       |
 | `LANGSMITH_PROJECT`    | LangSmith project name          | `medical-legal-router`  | ❌       |

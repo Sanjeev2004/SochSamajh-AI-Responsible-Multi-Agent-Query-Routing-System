@@ -75,6 +75,8 @@ async def route_query(payload: RouteRequest) -> RouterResponse:
             disclaimers=response.disclaimers + response.safety_notes,
             safety_flags=safety_flags,
             request_id=state.get("request_id", "unknown"),
+            sources=response.sources,
+            pipeline_trace=state.get("pipeline_trace", []),
         )
     except Exception as exc:  # pragma: no cover
         logger.exception("Routing failed")
