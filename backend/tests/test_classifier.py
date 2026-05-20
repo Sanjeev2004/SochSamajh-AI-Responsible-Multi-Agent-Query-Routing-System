@@ -38,6 +38,16 @@ def test_asthma_query_is_not_low_risk() -> None:
     assert result.risk_level == "medium"
 
 
+def test_stress_and_anxiety_routes_to_medical() -> None:
+    result = classify_intent("I have been feeling very stressed and anxious lately, what should I do?", SETTINGS)
+    assert result.domain == "medical"
+
+
+def test_burnout_routes_to_medical() -> None:
+    result = classify_intent("How do I deal with burnout from work?", SETTINGS)
+    assert result.domain == "medical"
+
+
 def test_medical_legal_overlap_prefers_legal_when_malpractice_is_present() -> None:
     result = classify_intent("Can I sue a hospital for malpractice after a surgery complication?", SETTINGS)
     assert result.domain == "legal"

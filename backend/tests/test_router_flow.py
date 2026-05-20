@@ -37,6 +37,22 @@ def test_router_flow_adds_medical_critic_warning_when_llm_skips_doctor_guidance(
     assert any("consulting a doctor" in note.lower() for note in state["response"].safety_notes)
 
 
+def test_router_flow_accepts_healthcare_professional_guidance(monkeypatch) -> None:
+    monkeypatch.setattr(
+        medical_agent,
+        "call_llm",
+        lambda **kwargs: "Talk to a healthcare professional about your feelings and symptoms.",
+    )
+
+    state = run_router(
+        "I have been feeling very stressed and anxious lately, what should I do?",
+        settings=SETTINGS,
+    )
+
+    assert state["classification"].domain == "medical"
+    assert not any("critic warning" in note.lower() for note in state["response"].safety_notes)
+
+
 def test_router_flow_unknown_queries_ask_for_clarification(monkeypatch) -> None:
     monkeypatch.setattr(
         general_agent,

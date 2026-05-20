@@ -9,8 +9,16 @@ def run_critic(response: AgentResponse, classification: ClassificationOutput, qu
     content_lower = response.content.lower()
 
     if classification.domain == "medical":
-        has_advice_warning = "consult" in content_lower or "doctor" in content_lower or "medical professional" in content_lower
-        has_existing_warning = any("doctor" in note.lower() or "medical" in note.lower() for note in response.safety_notes)
+        has_advice_warning = (
+            "consult" in content_lower
+            or "doctor" in content_lower
+            or "medical professional" in content_lower
+            or "healthcare professional" in content_lower
+        )
+        has_existing_warning = any(
+            "doctor" in note.lower() or "medical" in note.lower() or "healthcare professional" in note.lower()
+            for note in response.safety_notes
+        )
         if not has_advice_warning and not has_existing_warning:
             response.safety_notes.append("CRITIC WARNING: Response did not explicitly advise consulting a doctor.")
 
