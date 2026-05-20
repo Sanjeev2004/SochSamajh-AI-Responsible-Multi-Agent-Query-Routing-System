@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import sqlite3
+import aiosqlite
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -14,10 +14,10 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 DB_PATH = DATA_DIR / "feedback.sqlite3"
 
 
-def _ensure_db() -> None:
+async def _ensure_db() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.execute(
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
             """
             CREATE TABLE IF NOT EXISTS feedback (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,13 +29,15 @@ def _ensure_db() -> None:
             )
             """
         )
-        connection.execute(
+        await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_feedback_request_id ON feedback(request_id)"
         )
-        connection.commit()
+        await db.commit()
 
 
-_ensure_db()
+@router.on_event("startup")
+async def startup_event():
+    await _ensure_db()
 
 
 class FeedbackRequest(BaseModel):
@@ -45,7 +47,7 @@ class FeedbackRequest(BaseModel):
     request_id: str = Field(min_length=1, max_length=128)
 
 
-def _row_to_dict(row: sqlite3.Row) -> dict:
+def _row_to_dict(row: aiosqlite.Row) -> dict:
     return {key: row[key] for key in row.keys()}
 
 
@@ -60,16 +62,16 @@ async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
     )
 
     try:
-        with sqlite3.connect(DB_PATH) as connection:
-            connection.execute(
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
                 """
                 INSERT INTO feedback (timestamp, request_id, query_text, response_text, rating)
                 VALUES (?, ?, ?, ?, ?)
                 """,
                 entry,
             )
-            connection.commit()
-    except sqlite3.Error as exc:
+            await db.commit()
+    except aiosqlite.Error as exc:
         raise HTTPException(status_code=500, detail="Failed to store feedback.") from exc
 
     return {"status": "success", "message": "Feedback received"}
@@ -77,19 +79,24 @@ async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
 
 @router.get("/api/feedback/summary")
 async def feedback_summary() -> dict:
-    _ensure_db()
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.row_factory = sqlite3.Row
-        total = connection.execute("SELECT COUNT(*) AS count FROM feedback").fetchone()["count"]
-        by_rating = connection.execute(
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        
+        async with db.execute("SELECT COUNT(*) AS count FROM feedback") as cursor:
+            row = await cursor.fetchone()
+            total = row["count"] if row else 0
+
+        async with db.execute(
             """
             SELECT rating, COUNT(*) AS count
             FROM feedback
             GROUP BY rating
             ORDER BY rating
             """
-        ).fetchall()
-        recent_negative = connection.execute(
+        ) as cursor:
+            by_rating = await cursor.fetchall()
+
+        async with db.execute(
             """
             SELECT timestamp, request_id, query_text, response_text, rating
             FROM feedback
@@ -97,7 +104,8 @@ async def feedback_summary() -> dict:
             ORDER BY timestamp DESC
             LIMIT 10
             """
-        ).fetchall()
+        ) as cursor:
+            recent_negative = await cursor.fetchall()
 
     return {
         "total": total,
@@ -108,11 +116,10 @@ async def feedback_summary() -> dict:
 
 @router.get("/api/feedback/failures")
 async def feedback_failures(limit: int = 25) -> dict:
-    _ensure_db()
     safe_limit = max(1, min(limit, 100))
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.row_factory = sqlite3.Row
-        rows = connection.execute(
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
             """
             SELECT timestamp, request_id, query_text, response_text
             FROM feedback
@@ -121,7 +128,8 @@ async def feedback_failures(limit: int = 25) -> dict:
             LIMIT ?
             """,
             (safe_limit,),
-        ).fetchall()
+        ) as cursor:
+            rows = await cursor.fetchall()
 
     return {
         "count": len(rows),

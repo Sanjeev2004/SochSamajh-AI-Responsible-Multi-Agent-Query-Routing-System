@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, TypedDict
+from typing import Optional, TypedDict
 from pydantic import BaseModel, Field
 
-Domain = Literal["medical", "legal", "general", "unknown"]
-RiskLevel = Literal["low", "medium", "high"]
+from enum import Enum
+
+class Domain(str, Enum):
+    MEDICAL = "medical"
+    LEGAL = "legal"
+    GENERAL = "general"
+    UNKNOWN = "unknown"
+
+class RiskLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 class ClassificationOutput(BaseModel):
@@ -53,6 +63,7 @@ class RouterResponse(BaseModel):
 
 class GraphState(TypedDict, total=False):
     query: str
+    user_context: Optional[str]
     classification: ClassificationOutput
     response: AgentResponse
     safety_flags: SafetyFlags

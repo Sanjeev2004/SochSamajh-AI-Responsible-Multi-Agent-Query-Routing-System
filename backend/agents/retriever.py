@@ -10,24 +10,33 @@ CHROMA_PATH = Path(__file__).resolve().parents[1] / "rag" / "chroma_db"
 DATA_PATH = Path(__file__).resolve().parents[1] / "rag" / "data"
 
 
-def _tokenize(text: str) -> set[str]:
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", text.lower()) if len(token) > 2}
+import threading
+
+_lock = threading.Lock()
 
 
 class Retriever:
     _instance: "Retriever | None" = None
 
     def __new__(cls) -> "Retriever":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._ready = False
-            cls._instance._init_attempted = False
-            cls._instance._fallback_chunks = []
+        with _lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._ready = False
+                cls._instance._init_attempted = False
+                cls._instance._fallback_loaded = False
+                cls._instance._fallback_chunks = []
         return cls._instance
 
+    @staticmethod
+    def _tokenize(text: str) -> set[str]:
+        return {token for token in re.findall(r"[a-zA-Z0-9]+", text.lower()) if len(token) > 2}
+
     def _load_fallback_chunks(self) -> None:
-        if self._fallback_chunks:
+        if self._fallback_loaded:
             return
+        
+        self._fallback_loaded = True
 
         chunks: list[dict[str, str | set[str]]] = []
         for filename in sorted(DATA_PATH.glob("*.txt")):
@@ -44,7 +53,7 @@ class Retriever:
                         "domain": domain,
                         "source": filename.name,
                         "text": chunk,
-                        "tokens": _tokenize(chunk),
+                        "tokens": self._tokenize(chunk),
                     }
                 )
 
@@ -55,18 +64,28 @@ class Retriever:
         if not self._fallback_chunks:
             return []
 
-        query_tokens = _tokenize(query)
+        query_tokens = self._tokenize(query)
         if not query_tokens:
             return []
 
-        scored: list[tuple[int, int, dict[str, str | set[str]]]] = []
+        # Calculate simple IDF: how many chunks contain each token
+        from collections import Counter
+        doc_freq = Counter(token for chunk in self._fallback_chunks for token in chunk["tokens"])
+        
+        scored: list[tuple[float, int, dict[str, str | set[str]]]] = []
         for chunk in self._fallback_chunks:
             if domain and chunk["domain"] != domain:
                 continue
-            overlap = len(query_tokens & chunk["tokens"])
-            if overlap <= 0:
+            
+            overlap = query_tokens & chunk["tokens"]
+            if not overlap:
                 continue
-            scored.append((overlap, len(str(chunk["text"])), chunk))
+            
+            # Score = number of overlapping tokens + bonus for rare terms
+            rare_bonus = sum(1 for t in overlap if doc_freq.get(t, 0) <= 2)
+            score = len(overlap) + rare_bonus
+            
+            scored.append((float(score), len(str(chunk["text"])), chunk))
 
         if not scored:
             return []

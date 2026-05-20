@@ -4,12 +4,14 @@ import re
 
 from langsmith import traceable
 
-from core.config import Settings
-from core.state import AgentResponse, ClassificationOutput
+from core.config import Settings, logger
+from core.state import AgentResponse, ClassificationOutput, Domain
 from agents.base import call_llm
+from agents.utils import MAX_QUERY_LENGTH
 
 WELLBEING_RE = re.compile(
-    r"\b(burnout|burned\s*out|burnt\s*out|stress(?:ed|ful)?|anxious|anxiety|overwhelmed|workload|work\s+pressure)\b",
+    r"\b(burnout|burned\s*out|burnt\s*out|stress(?:ed|ful)?|anxious|anxiety|overwhelmed|workload|work\s+pressure|"
+    r"lonely|loneliness|social anxiety|can't sleep|insomnia|panic attack|grief|loss|heartbreak|self-esteem|confidence)\b",
     re.IGNORECASE,
 )
 EXPLAINER_RE = re.compile(
@@ -58,24 +60,29 @@ def _fallback_wellbeing_response(query: str) -> str:
 
 @traceable(name="general_agent")
 def run_general_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
+    query = query[:MAX_QUERY_LENGTH]
+    is_wellbeing = _is_wellbeing_query(query)
+    is_explainer = _is_explainer_query(query)
+    
     try:
         ambiguity_instruction = ""
-        if classification.domain == "unknown" and not _is_explainer_query(query):
+        if classification.domain == Domain.UNKNOWN and not is_explainer:
             ambiguity_instruction = (
                 "The query is ambiguous. Ask 2-3 concise clarification questions to identify whether the issue is medical, legal, or general. "
                 "Do not guess the domain too early. Help the user narrow it down with practical clarifying questions. "
             )
 
         explainer_instruction = ""
-        if _is_explainer_query(query):
+        if is_explainer:
             explainer_instruction = (
                 "The user is asking a clear educational or explainer question. Answer it directly. "
                 "Do not ask for more information unless the subject itself is missing. "
                 "Use a simple definition first, then 2-4 short bullets or a compact example if useful. "
             )
+            ambiguity_instruction = ""  # suppress ambiguity for clear explainers
 
         wellbeing_instruction = ""
-        if _is_wellbeing_query(query):
+        if is_wellbeing:
             wellbeing_instruction = (
                 "The user is asking about burnout, stress, anxiety, or overwhelm. Give a warm, specific, non-template answer. "
                 "Do not diagnose. Do not repeat the same generic checklist for every stress query. Tailor the answer to the user's wording. "
@@ -104,16 +111,19 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
             temperature=0.3,
         )
 
-        disclaimers = [WELLBEING_DISCLAIMER] if _is_wellbeing_query(query) else []
-        return AgentResponse(content=content, disclaimers=disclaimers, safety_notes=[])
-    except Exception:
-        if _is_wellbeing_query(query):
+        disclaimers = [WELLBEING_DISCLAIMER] if is_wellbeing else []
+        return AgentResponse(content=content, disclaimers=disclaimers, safety_notes=[], sources=[])
+    except Exception as exc:
+        logger.warning("General agent LLM failed, using fallback. is_wellbeing=%s is_explainer=%s error=%s", 
+                       is_wellbeing, is_explainer, exc)
+        if is_wellbeing:
             return AgentResponse(
                 content=_fallback_wellbeing_response(query),
                 disclaimers=[WELLBEING_DISCLAIMER],
                 safety_notes=[],
+                sources=[],
             )
-        if _is_explainer_query(query):
+        if is_explainer:
             return AgentResponse(
                 content=(
                     "I could not reach the live LLM right now, so I cannot give the full generated explanation yet. "
@@ -121,6 +131,7 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
                 ),
                 disclaimers=[],
                 safety_notes=[],
+                sources=[],
             )
 
         fallback = (
@@ -130,4 +141,4 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
             "- What happened, when did it start, and who is involved?\n"
             "- What outcome do you want in the next 24-48 hours?"
         )
-        return AgentResponse(content=fallback, disclaimers=[], safety_notes=[])
+        return AgentResponse(content=fallback, disclaimers=[], safety_notes=[], sources=[])

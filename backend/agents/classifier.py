@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Iterable
 
 from langsmith import traceable
 
 from core.config import Settings, logger
-from core.state import ClassificationOutput
+from core.state import ClassificationOutput, Domain, RiskLevel
+
+
+# -------------------- CONFIG / CONSTANTS --------------------
+
+MAX_QUERY_LENGTH = 2000  # prevent pathological long inputs
 
 
 SELF_HARM_KEYWORDS = frozenset([
@@ -25,9 +31,13 @@ SELF_HARM_KEYWORDS = frozenset([
     "kill myself tonight",
     "fastest way to kill myself",
     "sleeping pills would end my life",
+    # Hindi / Hinglish variants
     "khud ko nuksan",
     "khud ko nuksan pahuncha",
     "mar jana chahta",
+    "marna chahta hoon",
+    "jeena nahi chahta",
+    "zindagi khatam karna chahta",
 ])
 
 ILLEGAL_KEYWORDS = frozenset([
@@ -107,6 +117,7 @@ VAGUE_QUERY_TERMS = frozenset([
     "need advice",
 ])
 
+
 MEDICAL_KEYWORDS = frozenset([
     "symptom",
     "symptoms",
@@ -179,6 +190,13 @@ MEDICAL_KEYWORDS = frozenset([
     "tightness",
     "shortness of breath",
     "emergency room",
+    # extra Hinglish
+    "dard ho raha hai",
+    "tabiyat theek nahi",
+    "ul­ti aa rahi",
+    "chakkar aa rahe",
+    "naak band",
+    "khansi",
 ])
 
 LEGAL_KEYWORDS = frozenset([
@@ -227,7 +245,30 @@ LEGAL_KEYWORDS = frozenset([
     "small claims",
     "dispute",
     "disputes",
+    # common Hinglish context
+    "naukri se nikala",
+    "kiraaya",
+    "kiraya",
+    "mujhe dhoka diya",
 ])
+
+# Future: if you add a financial agent, you already have signals:
+FINANCIAL_KEYWORDS = frozenset([
+    "loan",
+    "emi",
+    "credit card",
+    "bank fraud",
+    "upi fraud",
+    "insurance claim",
+    "mutual fund",
+    "tax return",
+    "itr",
+    "investment",
+    "stock market",
+    "demat",
+    "sebi",
+])
+
 
 LEGAL_PRIORITY_TERMS = frozenset([
     "sue",
@@ -303,8 +344,8 @@ MEDICAL_PRIORITY_TERMS = frozenset([
     "stroke",
     "blood pressure",
     "hypertension",
-    "dengue",
     "hba1c",
+    "dengue",
     "pregnancy",
     "vaccine",
     "bleeding",
@@ -319,6 +360,7 @@ MEDICAL_PRIORITY_TERMS = frozenset([
     "pcos",
     "depression",
     "panic",
+    "panic attack",
     "anxiety",
     "anxious",
     "stress",
@@ -336,7 +378,7 @@ MEDICAL_PRIORITY_TERMS = frozenset([
     "drooping",
 ])
 
-LEGAL_WEIGHTED_TERMS = {
+LEGAL_WEIGHTED_TERMS: dict[str, int] = {
     "sue": 6,
     "lawyer": 5,
     "attorney": 5,
@@ -380,7 +422,7 @@ LEGAL_WEIGHTED_TERMS = {
     "dispute": 3,
 }
 
-MEDICAL_WEIGHTED_TERMS = {
+MEDICAL_WEIGHTED_TERMS: dict[str, int] = {
     "diagnosis": 4,
     "diagnose": 4,
     "symptoms": 3,
@@ -575,6 +617,41 @@ MEDIUM_RISK_KEYWORDS = frozenset([
     "small claims",
 ])
 
+# Simple typo correction map to improve recall
+TYPO_CORRECTIONS: dict[str, str] = {
+    "symtoms": "symptoms",
+    "symtpoms": "symptoms",
+    "lawer": "lawyer",
+    "attourney": "attorney",
+    "docter": "doctor",
+    "hospitl": "hospital",
+    "emergancy": "emergency",
+    "divorc": "divorce",
+    "vaccin": "vaccine",
+}
+
+NEGATION_PREFIXES = (
+    "not ",
+    "don't ",
+    "doesn't ",
+    "no ",
+    "never ",
+    "without ",
+    "avoid ",
+    "stop ",
+    "stopped ",
+)
+
+
+# -------------------- HELPER FUNCTIONS --------------------
+
+
+def _correct_typos(text: str) -> str:
+    """Very lightweight token-level typo correction."""
+    words = text.split()
+    corrected = [TYPO_CORRECTIONS.get(w.lower(), w) for w in words]
+    return " ".join(corrected)
+
 
 def _contains_any(text: str, phrases: Iterable[str]) -> bool:
     text_lower = text.lower()
@@ -583,12 +660,29 @@ def _contains_any(text: str, phrases: Iterable[str]) -> bool:
 
 def _score_matches(text: str, phrases: Iterable[str]) -> int:
     text_lower = text.lower()
-    return sum(1 for phrase in phrases if _phrase_in_text(text_lower, phrase))
+    return sum(
+        1 for phrase in phrases 
+        if _phrase_in_text(text_lower, phrase) 
+        and not _is_negated(text_lower, phrase)
+    )
+
+
+def _is_negated(text_lower: str, phrase: str) -> bool:
+    """Check if a phrase appears in the scope of a negation word."""
+    idx = text_lower.find(phrase)
+    if idx == -1:
+        return False
+    window = text_lower[max(0, idx - 20) : idx]
+    return any(neg in window for neg in NEGATION_PREFIXES)
 
 
 def _weighted_score(text: str, weighted_phrases: dict[str, int]) -> int:
     text_lower = text.lower()
-    return sum(weight for phrase, weight in weighted_phrases.items() if _phrase_in_text(text_lower, phrase))
+    total = 0
+    for phrase, weight in weighted_phrases.items():
+        if _phrase_in_text(text_lower, phrase) and not _is_negated(text_lower, phrase):
+            total += weight
+    return total
 
 
 def _matched_terms(text: str, phrases: Iterable[str], limit: int = 8) -> list[str]:
@@ -606,13 +700,13 @@ def _phrase_in_text(text: str, phrase: str) -> bool:
 def _is_vague_query(text: str) -> bool:
     text_lower = text.lower().strip()
     normalized_text = re.sub(r"[^a-z0-9\s]", "", text_lower)
-    if text_lower in VAGUE_QUERY_TERMS:
-        return True
-    if normalized_text in VAGUE_QUERY_TERMS:
+
+    if text_lower in VAGUE_QUERY_TERMS or normalized_text in VAGUE_QUERY_TERMS:
         return True
 
     generic_terms = ("help", "problem", "issue", "guidance", "situation", "advice", "kya karun", "guide")
     word_count = len(normalized_text.split())
+
     if word_count <= 6 and any(term in normalized_text for term in generic_terms):
         return True
 
@@ -622,8 +716,81 @@ def _is_vague_query(text: str) -> bool:
     return False
 
 
+def _sigmoid_confidence(score_gap: float, base: float = 0.6) -> float:
+    """Map score gap [0, ∞) to confidence [base, 0.95] using a smooth curve."""
+    # smaller gaps → close to base; larger gaps → asymptotically approach 0.95
+    return base + (0.95 - base) * (1 - math.exp(-score_gap * 0.4))
+
+
+# -------------------- PRE-SCREEN --------------------
+
+_llm_chain = None
+
+def _get_llm_chain(settings: Settings):
+    global _llm_chain
+    if _llm_chain is None:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.prompts import PromptTemplate
+        from langchain_core.output_parsers import JsonOutputParser
+        from pydantic import BaseModel, Field
+        
+        class LLMClassificationOutput(BaseModel):
+            domain: Domain = Field(description="One of: 'medical', 'legal', 'general'")
+            risk_level: RiskLevel = Field(description="One of: 'low', 'medium', 'high'")
+            reasoning: str = Field(description="Brief reasoning")
+            confidence: float = Field(description="Confidence between 0 and 1")
+            
+        llm = ChatOpenAI(
+            model=settings.openai_model or "gpt-4o",
+            api_key=settings.openai_api_key,
+            base_url=settings.openai_base_url,
+            temperature=0.0,
+            max_retries=1
+        )
+        parser = JsonOutputParser(pydantic_object=LLMClassificationOutput)
+        prompt = PromptTemplate(
+            template=(
+                "You are an expert intent router for an AI assistant.\n"
+                "Classify the following user query into one of three domains: 'medical', 'legal', or 'general'.\n"
+                "Also assess the risk_level ('low', 'medium', 'high') based on urgency or potential harm.\n\n"
+                "Query: \"{query}\"\n\n"
+                "Respond with JSON only, matching this schema:\n"
+                "{format_instructions}\n"
+            ),
+            input_variables=["query"],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
+        _llm_chain = prompt | llm | parser
+    return _llm_chain
+
+def _llm_classify(query: str, settings: Settings, base_result: ClassificationOutput) -> ClassificationOutput:
+    if not settings.enable_llm or not settings.openai_api_key:
+        return base_result
+        
+    try:
+        chain = _get_llm_chain(settings)
+        res = chain.invoke({"query": query})
+        
+        return ClassificationOutput(
+            domain=res["domain"],
+            risk_level=res["risk_level"],
+            needs_disclaimer=res["domain"] in [Domain.MEDICAL, Domain.LEGAL],
+            self_harm=base_result.self_harm,
+            illegal_request=base_result.illegal_request,
+            reasoning=f"LLM Fallback: {res['reasoning']}",
+            confidence=res["confidence"],
+            triggered_terms=base_result.triggered_terms,
+            alternative_domains=base_result.alternative_domains,
+            explanation=f"Heuristic confidence was low ({base_result.confidence}), so semantic LLM routing was used."
+        )
+    except Exception as e:
+        logger.warning("LLM fallback classification failed: %s", e)
+        return base_result
+
+
 @traceable(name="pre_screen")
 def pre_screen_query(query: str) -> ClassificationOutput | None:
+    # For safety, use the raw query (no truncation/typo-correction)
     if _contains_any(query, SELF_HARM_KEYWORDS):
         triggers = _matched_terms(query, SELF_HARM_KEYWORDS)
         return ClassificationOutput(
@@ -636,7 +803,10 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
             confidence=0.98,
             triggered_terms=triggers,
             alternative_domains={"general": 0.98, "medical": 0.1, "legal": 0.05},
-            explanation="The pre-screen matched self-harm language, so the normal router was bypassed for a safety response.",
+            explanation=(
+                "The pre-screen matched self-harm language, so the normal router "
+                "was bypassed for a safety response."
+            ),
         )
 
     if _contains_any(query, ILLEGAL_KEYWORDS):
@@ -651,15 +821,44 @@ def pre_screen_query(query: str) -> ClassificationOutput | None:
             confidence=0.96,
             triggered_terms=triggers,
             alternative_domains={"legal": 0.96, "general": 0.2, "medical": 0.05},
-            explanation="The pre-screen matched illegal-intent language, so the system refused unsafe help and offered lawful alternatives.",
+            explanation=(
+                "The pre-screen matched illegal-intent language, so the system refused "
+                "unsafe help and offered lawful alternatives."
+            ),
         )
 
     return None
 
 
+# -------------------- MAIN CLASSIFIER --------------------
+
+
 @traceable(name="intent_risk_classifier")
 def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
+    raw_query = query
+
+    # Guard against extremely long inputs
+    if len(query) > MAX_QUERY_LENGTH:
+        logger.warning("Query truncated from %d to %d chars", len(query), MAX_QUERY_LENGTH)
+        query = query[:MAX_QUERY_LENGTH]
+
+    # Lightweight typo correction to improve keyword recall
+    query = _correct_typos(query)
     query_lower = query.lower()
+    word_count = len(query_lower.split())
+
+    # Pre-screen once and reuse
+    pre_screen_result = pre_screen_query(raw_query)
+    if pre_screen_result is not None:
+        logger.info(
+            "PRE-SCREEN HIT | domain=%s | risk=%s | terms=%s",
+            pre_screen_result.domain,
+            pre_screen_result.risk_level,
+            pre_screen_result.triggered_terms,
+        )
+        return pre_screen_result
+
+    # --- Keyword and heuristic features ---
 
     medical_score = _score_matches(query_lower, MEDICAL_KEYWORDS)
     legal_score = _score_matches(query_lower, LEGAL_KEYWORDS)
@@ -669,6 +868,7 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     legal_weighted_score = _weighted_score(query_lower, LEGAL_WEIGHTED_TERMS)
     urgent_intent = _contains_any(query_lower, URGENT_INTENT_TERMS)
     has_legal_remedy_intent = _contains_any(query_lower, LEGAL_REMEDY_TERMS)
+    has_financial = _contains_any(query_lower, FINANCIAL_KEYWORDS)
 
     if _contains_any(query_lower, LEGAL_PRACTICAL_STEP_TERMS):
         legal_weighted_score += 2
@@ -678,8 +878,10 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     is_vague = _is_vague_query(query_lower)
     has_cross_domain_ambiguity = _contains_any(query_lower, AMBIGUOUS_CROSS_DOMAIN_TERMS)
 
-    domain = None
+    domain: Domain | None = None
     reasoning = "Keyword-based classification"
+
+    # --- Domain decision logic ---
 
     if has_cross_domain_ambiguity and has_medical and has_legal:
         domain = "unknown"
@@ -717,29 +919,11 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     elif domain is None and medical_score > legal_score:
         domain = "medical"
         reasoning = f"Medical keyword match (medical={medical_score}, legal={legal_score})"
-    elif domain is None and (len(query.strip()) < 10 or is_vague):
+    elif domain is None and (word_count < 10 or is_vague):
         domain = "unknown"
+        reasoning = "Vague or very short query with low domain evidence"
 
-    if domain is None and is_vague and max(medical_weighted_score, legal_weighted_score, medical_score, legal_score) <= 1:
-        domain = "unknown"
-        reasoning = "Vague query with low-confidence domain evidence"
-
-    if not domain or (domain == "unknown" and not is_vague and (has_medical or has_legal)):
-        semantic_domain = None
-        if settings.enable_semantic_router:
-            try:
-                from agents.router_semantic import semantic_router
-
-                semantic_domain = semantic_router.predict(query, threshold=0.42)
-            except Exception as exc:
-                logger.info("Semantic routing unavailable; using heuristic fallback: %s", exc)
-
-        if semantic_domain and domain != "unknown":
-            domain = semantic_domain
-            reasoning = f"Semantic router fallback selected {semantic_domain}"
-        elif not domain:
-            domain = "general"
-
+    # If after all heuristics domain is still None, default to general
     if not domain:
         domain = "general"
 
@@ -747,6 +931,7 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     medical_urgent = _contains_any(query_lower, MEDICAL_URGENCY_TERMS)
     legal_high_risk = _contains_any(query_lower, LEGAL_HIGH_RISK_TERMS)
     has_medium_risk = _contains_any(query_lower, MEDIUM_RISK_KEYWORDS)
+
     triggered_terms = sorted(
         set(
             _matched_terms(query_lower, MEDICAL_KEYWORDS)
@@ -766,10 +951,8 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         has_high_risk = True
     if urgent_intent and (has_medical or has_legal) and not has_high_risk:
         has_medium_risk = True
-
     if urgent_intent and domain == "medical" and medical_weighted_score >= 3:
         has_high_risk = True
-
     if domain == "unknown":
         has_medium_risk = urgent_intent
 
@@ -781,12 +964,14 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         risk_level = "low"
 
     needs_disclaimer = domain in ["medical", "legal"]
+
     domain_scores = {
-        "medical": round(float(medical_weighted_score + medical_priority_score + medical_score), 3),
-        "legal": round(float(legal_weighted_score + legal_priority_score + legal_score), 3),
+        "medical": float(medical_weighted_score + medical_priority_score + medical_score),
+        "legal": float(legal_weighted_score + legal_priority_score + legal_score),
         "general": 1.0 if not has_medical and not has_legal and not is_vague else 0.0,
         "unknown": 2.0 if domain == "unknown" or is_vague or has_cross_domain_ambiguity else 0.0,
     }
+
     max_score = max(domain_scores.values()) if domain_scores else 0.0
     if max_score > 0:
         normalized_scores = {key: round(value / max_score, 3) for key, value in domain_scores.items()}
@@ -795,13 +980,16 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
 
     sorted_scores = sorted(normalized_scores.values(), reverse=True)
     score_gap = sorted_scores[0] - sorted_scores[1] if len(sorted_scores) > 1 else sorted_scores[0]
+
+    # Base confidence on separation between top-2 domain scores
     if domain == "unknown":
         confidence = 0.45 if triggered_terms else 0.35
     elif max_score == 0:
         confidence = 0.55
     else:
-        confidence = min(0.95, max(0.52, 0.58 + score_gap * 0.35))
-    if has_high_risk or pre_screen_query(query) is not None:
+        confidence = _sigmoid_confidence(score_gap, base=0.58)
+
+    if has_high_risk:
         confidence = max(confidence, 0.82)
 
     explanation_parts = [reasoning]
@@ -811,14 +999,17 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         explanation_parts.append("The router avoided over-confident routing and asks clarification instead.")
     elif domain in {"medical", "legal"}:
         explanation_parts.append(f"The strongest evidence points to the {domain} route.")
+    if has_financial:
+        explanation_parts.append("Detected financial-related terms; a financial agent could refine this further in future.")
+
     explanation = " ".join(explanation_parts)
 
     result = ClassificationOutput(
         domain=domain,
         risk_level=risk_level,
         needs_disclaimer=needs_disclaimer,
-        self_harm=_contains_any(query, SELF_HARM_KEYWORDS),
-        illegal_request=_contains_any(query, ILLEGAL_KEYWORDS),
+        self_harm=_contains_any(raw_query, SELF_HARM_KEYWORDS),
+        illegal_request=_contains_any(raw_query, ILLEGAL_KEYWORDS),
         reasoning=f"{reasoning}: domain={domain}, risk={risk_level}",
         confidence=round(confidence, 2),
         triggered_terms=triggered_terms,
@@ -828,5 +1019,29 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
 
     if result.domain == "general" and _contains_any(query, MEDICAL_HINTS | LEGAL_HINTS):
         logger.warning("Possible misclassification: heuristic suggests medical/legal")
+
+    # -------------------- CASCADE ROUTING (RESEARCH-LEVEL) --------------------
+    # Use fast heuristics for obvious queries. 
+    # If the domain is unknown or confidence is low, cascade to the LLM (Semantic Routing).
+    if result.domain == Domain.UNKNOWN or result.confidence < 0.65:
+        logger.info("Cascading to LLM semantic router due to low confidence (%.2f) or unknown domain.", result.confidence)
+        llm_result = _llm_classify(raw_query, settings, result)
+        # Retain hard safety flags triggered in pre-screen
+        if result.self_harm or result.illegal_request:
+            llm_result.self_harm = result.self_harm
+            llm_result.illegal_request = result.illegal_request
+        
+        logger.info("LLM override applied: domain=%s conf=%.2f", llm_result.domain, llm_result.confidence)
+        result = llm_result
+
+    logger.info(
+        "CLASSIFICATION | len=%d words=%d | domain=%s | risk=%s | conf=%.2f | terms=%s",
+        len(raw_query),
+        word_count,
+        result.domain,
+        result.risk_level,
+        result.confidence,
+        result.triggered_terms[:3],
+    )
 
     return result

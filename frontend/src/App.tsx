@@ -7,7 +7,7 @@ import {
     ThumbsDown,
     ThumbsUp
 } from "lucide-react";
-import { getFeedbackSummary, getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
+import { getFeedbackSummary, getHealth, routeQuery, sendFeedback, uploadDocument } from "./hooks/useApi";
 import { FeedbackSummary, HealthResponse, HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
 import { ResponseDisplay } from "./components/ResponseDisplay";
@@ -57,12 +57,16 @@ export default function App() {
         };
     }, []);
 
-    async function handleSubmit(query: string) {
+    async function handleSubmit(query: string, file: File | null) {
         setError(null);
         setLoading(true);
         setFeedbackSent(false);
         try {
-            const result = await routeQuery(query);
+            let userContext = undefined;
+            if (file) {
+                userContext = await uploadDocument(file);
+            }
+            const result = await routeQuery(query, userContext);
             setCurrentResult(result);
             setHistory((prev) => [
                 {

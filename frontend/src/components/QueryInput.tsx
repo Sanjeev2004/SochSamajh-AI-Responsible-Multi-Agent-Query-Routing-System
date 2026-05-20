@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { ArrowUpRight, MessageSquareQuote, WandSparkles } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowUpRight, MessageSquareQuote, WandSparkles, Paperclip, X } from "lucide-react";
 
 interface QueryInputProps {
-    onSubmit: (query: string) => void;
+    onSubmit: (query: string, file: File | null) => void;
     disabled?: boolean;
 }
 
@@ -15,11 +15,20 @@ const QUICK_PROMPTS = [
 export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
     const [value, setValue] = useState("");
     const [focused, setFocused] = useState(false);
+    const [file, setFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     function handleSubmit() {
         if (!value.trim()) return;
-        onSubmit(value.trim());
+        onSubmit(value.trim(), file);
         setValue("");
+        setFile(null);
+    }
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        if (event.target.files && event.target.files[0]) {
+            setFile(event.target.files[0]);
+        }
     }
 
     function handleKeyDown(event: React.KeyboardEvent) {
@@ -78,6 +87,31 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
                             </div>
                         </div>
                         <p className="max-w-xl text-xs leading-5 text-stone-500">Include symptoms, urgency, timeline, or location.</p>
+                        
+                        <div className="flex items-center gap-2 mt-2">
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".txt,.pdf"
+                                className="hidden"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-stone-300 transition hover:bg-white/10"
+                            >
+                                <Paperclip className="h-3.5 w-3.5" />
+                                Attach Document
+                            </button>
+                            {file && (
+                                <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1.5 text-xs text-teal-200">
+                                    <span className="max-w-[150px] truncate">{file.name}</span>
+                                    <button onClick={() => setFile(null)} className="hover:text-white transition">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <button

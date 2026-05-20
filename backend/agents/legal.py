@@ -1,24 +1,19 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from langsmith import traceable
 
 from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from services.retrieval_service import get_retrieval_result
+from agents.utils import _context_hint, MAX_QUERY_LENGTH
+from services.retrieval_service import get_retrieval_result, RetrievalResult
 
 LEGAL_DISCLAIMER = (
     "This is general legal information, not legal advice. Laws vary by jurisdiction; consult a licensed attorney."
 )
 
 
-def _context_hint(context: str) -> str:
-    if not context.strip():
-        return ""
-    first_line = next((line.strip() for line in context.splitlines() if line.strip()), "")
-    if not first_line:
-        return ""
-    return f"\n\nRelevant retrieved note:\n- {first_line[:260]}"
+MAX_FALLBACK_STEPS = 5
 
 
 def _fallback_legal_response(query: str, classification: ClassificationOutput, context: str) -> str:
@@ -57,7 +52,7 @@ def _fallback_legal_response(query: str, classification: ClassificationOutput, c
         steps.insert(0, "For employment disputes, preserve offer letter, payslips, attendance proof, termination notice, and work communication.")
 
     lines.append("Practical next steps:")
-    lines.extend(f"- {step}" for step in steps[:5])
+    lines.extend(f"- {step}" for step in steps[:MAX_FALLBACK_STEPS])
     lines.extend(
         [
             "",
@@ -70,10 +65,44 @@ def _fallback_legal_response(query: str, classification: ClassificationOutput, c
     return "\n".join(lines).strip() + _context_hint(context)
 
 
+def _build_legal_prompt(context: str, urgency_instruction: str, user_context: str | None = None) -> str:
+    parts = [
+        "You are a legal information assistant. Provide general, high-level information only. ",
+        "Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. "
+    ]
+    if urgency_instruction:
+        parts.append(urgency_instruction)
+    
+    if user_context:
+        parts.append(f"\nUser's Personal Document Context:\n{user_context[:4000]}\n")
+        
+    parts.append(f"\nGeneral Knowledge Base Context:\n{context}\n")
+    parts.append(
+        "Keep response short, readable, and plain text. Use hyphen bullets only. "
+        "Use these plain section labels when possible: General legal explanation:, Practical next steps:, What to avoid:. "
+        "Put each practical action or warning on its own hyphen bullet. "
+        "Give practical, lawful next steps when possible: what to do now, what records to collect, where to file, and who to contact. "
+        "If the user asks for process, complaint, notice, rights, or documents, answer with concrete next-step bullets. "
+        "Do not use markdown tables, heading markers, or pipe-separated formatting."
+    )
+    return "\n".join(parts)
+
+
 @traceable(name="legal_agent")
-def run_legal_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
-    retrieval = get_retrieval_result(query=query, domain="legal", settings=settings)
-    context = retrieval.context
+def run_legal_agent(
+    query: str, 
+    classification: ClassificationOutput, 
+    settings: Settings,
+    user_context: str | None = None
+) -> AgentResponse:
+    query = query[:MAX_QUERY_LENGTH]
+    try:
+        retrieval = get_retrieval_result(query=query, domain="legal", settings=settings)
+        context = retrieval.context
+    except Exception as exc:
+        logger.warning("Legal retrieval failed, proceeding without context: %s", exc)
+        retrieval = RetrievalResult(context="", sources=[])
+        context = ""
     try:
         urgency_instruction = ""
         if classification.risk_level == "high":
@@ -81,19 +110,7 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
                 "If user may be in immediate danger, start with an 'Immediate safety' section before legal process details. "
             )
 
-        system_prompt = (
-            "You are a legal information assistant. Provide general, high-level information only. "
-            "Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. "
-            "Use the provided context to answer if relevant. If the context is not relevant, ignore it. "
-            f"{urgency_instruction}"
-            f"\n\nContext:\n{context}\n\n"
-            "Keep response short, readable, and plain text. Use hyphen bullets only. "
-            "Use these plain section labels when possible: General legal explanation:, Practical next steps:, What to avoid:. "
-            "Put each practical action or warning on its own hyphen bullet. "
-            "Give practical, lawful next steps when possible: what to do now, what records to collect, where to file, and who to contact. "
-            "If the user asks for process, complaint, notice, rights, or documents, answer with concrete next-step bullets. "
-            "Do not use markdown tables, heading markers, or pipe-separated formatting."
-        )
+        system_prompt = _build_legal_prompt(context, urgency_instruction, user_context)
 
         content = call_llm(
             query=query,

@@ -53,12 +53,16 @@ def build_graph(settings: Settings) -> StateGraph:
 
     def medical_node(state: GraphState) -> GraphState:
         _trace(state, "medical_agent")
-        state["response"] = run_medical_agent(state["query"], state["classification"], settings)
+        state["response"] = run_medical_agent(
+            state["query"], state["classification"], settings, user_context=state.get("user_context")
+        )
         return state
 
     def legal_node(state: GraphState) -> GraphState:
         _trace(state, "legal_agent")
-        state["response"] = run_legal_agent(state["query"], state["classification"], settings)
+        state["response"] = run_legal_agent(
+            state["query"], state["classification"], settings, user_context=state.get("user_context")
+        )
         return state
 
     def general_node(state: GraphState) -> GraphState:
@@ -123,7 +127,7 @@ DEFAULT_SETTINGS = Settings.load()
 COMPILED_GRAPH = build_graph(DEFAULT_SETTINGS).compile()
 
 
-def run_router(query: str, settings: Settings | None = None) -> GraphState:
+def run_router(query: str, settings: Settings | None = None, user_context: str | None = None) -> GraphState:
     active_settings = settings or DEFAULT_SETTINGS
     compiled_graph = COMPILED_GRAPH if active_settings == DEFAULT_SETTINGS else build_graph(active_settings).compile()
 
@@ -133,6 +137,7 @@ def run_router(query: str, settings: Settings | None = None) -> GraphState:
         "query": query,
         "request_id": request_id,
         "pipeline_trace": [],
+        "user_context": user_context,
     }
     result = compiled_graph.invoke(initial_state)
     latency_seconds = round(time.perf_counter() - started_at, 4)

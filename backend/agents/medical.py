@@ -1,27 +1,36 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from langsmith import traceable
 
 from core.config import Settings, logger
 from core.state import AgentResponse, ClassificationOutput
 from agents.base import call_llm
-from services.retrieval_service import get_retrieval_result
+from agents.utils import _context_hint, MAX_QUERY_LENGTH
+from services.retrieval_service import get_retrieval_result, RetrievalResult
+import re
+
+CRISIS_RE = re.compile(
+    r"\b(give up|can't cope|no point|hopeless|want to disappear|end it)\b",
+    re.IGNORECASE,
+)
+MENTAL_RE = re.compile(
+    r"\b(depress|anxi|panic|stress|overwhelm|mental|lonely)\b", 
+    re.IGNORECASE
+)
 
 MEDICAL_DISCLAIMER = "This is general educational information and not medical advice. Please consult a qualified healthcare professional."
 
 
-def _context_hint(context: str) -> str:
-    if not context.strip():
-        return ""
-    first_line = next((line.strip() for line in context.splitlines() if line.strip()), "")
-    if not first_line:
-        return ""
-    return f"\n\nRelevant retrieved note:\n- {first_line[:260]}"
+
 
 
 def _fallback_medical_response(query: str, classification: ClassificationOutput, context: str) -> str:
     query_lower = query.lower()
     lines: list[str] = []
+
+    if CRISIS_RE.search(query_lower):
+        lines.insert(0, "iCall helpline: 9152987821 (free, confidential)")
+        lines.insert(0, "If you are in distress, please reach out for support:")
 
     if classification.risk_level == "high":
         lines.extend(
@@ -77,9 +86,28 @@ def _fallback_medical_response(query: str, classification: ClassificationOutput,
 
 
 @traceable(name="medical_agent")
-def run_medical_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
-    retrieval = get_retrieval_result(query=query, domain="medical", settings=settings)
-    context = retrieval.context
+def run_medical_agent(
+    query: str, 
+    classification: ClassificationOutput, 
+    settings: Settings,
+    user_context: str | None = None
+) -> AgentResponse:
+    query = query[:MAX_QUERY_LENGTH]
+    try:
+        retrieval = get_retrieval_result(query=query, domain="medical", settings=settings)
+        context = retrieval.context
+    except Exception as exc:
+        logger.warning("Medical retrieval failed, proceeding without context: %s", exc)
+        retrieval = RetrievalResult(context="", sources=[])
+        context = ""
+        
+    seen = set()
+    unique_sources = []
+    for s in retrieval.sources:
+        if s.source not in seen:
+            seen.add(s.source)
+            unique_sources.append(s)
+            
     try:
         urgency_instruction = ""
         if classification.risk_level == "high":
@@ -92,32 +120,42 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
                 "Include a 'Warning signs' section that should prompt urgent in-person medical evaluation. "
             )
 
-        system_prompt = (
+        base_prompt = (
             "You are a medical information assistant. Provide educational, high-level information only. "
             "Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. "
             "Do not say the user likely has a specific disease; say symptoms can happen with several conditions. "
             "Use the provided context to answer if relevant. If the context is not relevant, ignore it. "
-            f"{urgency_instruction}"
-            f"\n\nContext:\n{context}\n\n"
+        )
+        prompt_parts = [base_prompt]
+        if urgency_instruction:
+            prompt_parts.append(urgency_instruction)
+            
+        if user_context:
+            prompt_parts.append(f"\nUser's Personal Document Context:\n{user_context[:4000]}\n")
+            
+        prompt_parts.append(f"\nGeneral Knowledge Base Context:\n{context}\n")
+        prompt_parts.append(
             "Keep response short, readable, and plain text. Use hyphen bullets only. "
             "Use these plain section labels when possible: What this may mean:, Safe next steps:, Seek urgent care if:. "
             "Put each practical action or warning sign on its own hyphen bullet. "
             "For urgent-sounding symptoms, mention warning signs that should prompt emergency or same-day in-person care. "
             "Do not use markdown tables, heading markers, or pipe-separated formatting."
         )
+        system_prompt = "\n".join(prompt_parts)
 
+        temperature = 0.4 if MENTAL_RE.search(query) else 0.2
         content = call_llm(
             query=query,
             system_prompt=system_prompt,
             settings=settings,
-            temperature=0.2
+            temperature=temperature
         )
 
         return AgentResponse(
             content=content,
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
-            sources=retrieval.sources,
+            sources=unique_sources,
         )
     except Exception as exc:
         if "LLM calls are disabled" in str(exc):
@@ -129,5 +167,5 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
             content=fallback,
             disclaimers=[MEDICAL_DISCLAIMER],
             safety_notes=[],
-            sources=retrieval.sources,
+            sources=unique_sources,
         )
