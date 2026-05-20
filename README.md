@@ -171,12 +171,14 @@ cp .env.example .env
 
 Update `backend/.env` with:
 
-- `OPENAI_API_KEY` (required)
+- `LLM_PROVIDER` (optional, `openai` or `groq`; default is `openai`)
+- `OPENAI_API_KEY` or `GROQ_API_KEY` (required when `ENABLE_LLM=true`)
 - `OPENAI_MODEL` (optional, default is `gpt-4o`)
+- `GROQ_MODEL` (optional, default is `llama-3.3-70b-versatile`)
 - `ENABLE_LLM` (optional, default is `false`; set `true` only when you want to spend API credits)
 - `BACKEND_CORS_ORIGINS` (optional, comma-separated)
 
-**Note:** The `.env.example` includes both OpenAI and OpenRouter configurations. Use OpenAI variables for standard deployment, or uncomment OpenRouter variables if using that service.
+**Note:** The `.env.example` includes OpenAI, Groq, and OpenRouter-style configuration. Use `LLM_PROVIDER=groq` with `GROQ_API_KEY` to route calls through Groq's OpenAI-compatible endpoint.
 
 ### Start Backend
 
@@ -522,13 +524,25 @@ The application uses the following environment variables:
 
 | Variable               | Description                     | Default                 | Required |
 | ---------------------- | ------------------------------- | ----------------------- | -------- |
-| `OPENAI_API_KEY`       | OpenAI API key for LLM calls    | -                       | Yes       |
+| `LLM_PROVIDER`         | LLM provider (`openai`, `groq`) | `openai`                | No       |
+| `OPENAI_API_KEY`       | OpenAI API key for LLM calls    | -                       | Yes, for OpenAI |
+| `GROQ_API_KEY`         | Groq API key for LLM calls      | -                       | Yes, for Groq |
 | `OPENAI_MODEL`         | OpenAI model to use             | `gpt-4o`                | No       |
-| `ENABLE_LLM`           | Enable live OpenAI API calls    | `false`                 | No       |
+| `GROQ_MODEL`           | Groq model to use               | `llama-3.3-70b-versatile` | No     |
+| `ENABLE_LLM`           | Enable live LLM API calls       | `false`                 | No       |
 | `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` | No       |
 | `LANGSMITH_API_KEY`    | LangSmith API key for tracing   | -                       | No       |
 | `LANGSMITH_PROJECT`    | LangSmith project name          | `medical-legal-router`  | No       |
 | `LANGCHAIN_TRACING_V2` | Enable LangChain tracing        | `false`                 | No       |
+
+**Alternative: Groq**
+
+Set these variables:
+
+- `LLM_PROVIDER=groq`
+- `GROQ_API_KEY`
+- `GROQ_MODEL`
+- `GROQ_BASE_URL=https://api.groq.com/openai/v1`
 
 **Alternative: OpenRouter**
 

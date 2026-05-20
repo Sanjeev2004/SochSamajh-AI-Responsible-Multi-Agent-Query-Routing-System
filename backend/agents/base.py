@@ -4,6 +4,17 @@ from openai import OpenAI
 from core.config import Settings
 
 
+def create_llm_client(settings: Settings) -> OpenAI:
+    client_kwargs = {
+        "api_key": settings.openai_api_key,
+        "timeout": settings.openai_timeout_seconds,
+        "max_retries": settings.openai_max_retries,
+    }
+    if settings.openai_base_url:
+        client_kwargs["base_url"] = settings.openai_base_url
+    return OpenAI(**client_kwargs)
+
+
 def call_llm(
     query: str, 
     system_prompt: str, 
@@ -12,17 +23,14 @@ def call_llm(
     max_tokens: int = 512
 ) -> str:
     if not settings.enable_llm:
-        raise RuntimeError("LLM calls are disabled. Set ENABLE_LLM=true to use the OpenAI API.")
+        raise RuntimeError("LLM calls are disabled. Set ENABLE_LLM=true to use the configured LLM provider.")
 
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not configured.")
+        key_name = "GROQ_API_KEY" if settings.llm_provider == "groq" else "OPENAI_API_KEY"
+        raise RuntimeError(f"{key_name} is not configured.")
 
     try:
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            timeout=settings.openai_timeout_seconds,
-            max_retries=settings.openai_max_retries,
-        )
+        client = create_llm_client(settings)
     except TypeError as exc:
         if "proxies" in str(exc):
             raise RuntimeError(

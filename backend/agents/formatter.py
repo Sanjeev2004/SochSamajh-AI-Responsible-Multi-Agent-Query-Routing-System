@@ -49,6 +49,7 @@ def _clean_markdown_noise(text: str) -> str:
 
         line = MARKDOWN_HEADING_RE.sub("", line)
         line = line.replace("**", "").replace("__", "").replace("`", "")
+        line = re.sub(r"^[*+]\s+", "- ", line)
 
         if TABLE_SEPARATOR_RE.fullmatch(line):
             continue

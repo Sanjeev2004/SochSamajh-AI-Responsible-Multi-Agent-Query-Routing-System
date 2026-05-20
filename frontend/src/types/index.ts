@@ -30,6 +30,13 @@ export interface RouterResponse {
     pipeline_trace: string[];
 }
 
+export interface HealthResponse {
+    status: string;
+    model?: string;
+    llm_provider?: string;
+    langsmith_project?: string;
+}
+
 export interface SourceCitation {
     title: string;
     source: string;

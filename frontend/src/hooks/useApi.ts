@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { FeedbackSummary, RouterResponse } from "../types";
+import type { FeedbackSummary, HealthResponse, RouterResponse } from "../types";
 
 export const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -12,9 +12,9 @@ const api = axios.create({
 export async function getHealth() {
     try {
         const response = await api.get("/api/health");
-        return response.data as { status: string; model: string; langsmith_project?: string };
+        return response.data as HealthResponse;
     } catch {
-        return { status: "error", model: "unknown" };
+        return { status: "error" };
     }
 }
 

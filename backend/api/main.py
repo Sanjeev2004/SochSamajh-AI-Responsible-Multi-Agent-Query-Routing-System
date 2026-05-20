@@ -55,6 +55,7 @@ def root() -> dict:
 def health_check() -> dict:
     return {
         "status": "ok",
+        "llm_provider": settings.llm_provider,
         "model": settings.openai_model,
         "langsmith_project": settings.langsmith_project,
     }

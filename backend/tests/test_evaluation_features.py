@@ -20,6 +20,7 @@ def _settings() -> Settings:
         backend_cors_origins=["*"],
         openai_api_key=None,
         openai_model="gpt-4o",
+        openai_base_url=None,
         openai_timeout_seconds=20.0,
         openai_max_retries=1,
         enable_llm=False,

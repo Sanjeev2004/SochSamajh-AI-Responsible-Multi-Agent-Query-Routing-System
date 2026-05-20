@@ -22,6 +22,7 @@ EXPECTED_VENV_PYTHON = BACKEND_ROOT / "venv" / "Scripts" / "python.exe"
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from agents.base import create_llm_client
 from agents.classifier import classify_intent, pre_screen_query
 from agents.critic import run_critic
 from agents.formatter import run_formatter
@@ -697,10 +698,11 @@ def _direct_llm_baseline_summary(
             "reason": "Enable with --enable-direct-llm-baseline or EVAL_ENABLE_DIRECT_LLM_BASELINE=true.",
         }
     if client is None or not settings.openai_api_key:
+        key_name = "GROQ_API_KEY" if settings.llm_provider == "groq" else "OPENAI_API_KEY"
         return {
             "name": "direct_llm_baseline",
             "status": "unavailable",
-            "reason": "OPENAI_API_KEY is not configured.",
+            "reason": f"{key_name} is not configured.",
         }
 
     def predictor(query: str) -> BaselinePrediction:
@@ -743,7 +745,7 @@ def run_evaluation(
     client = None
     if llm_judge_enabled and settings.openai_api_key:
         try:
-            client = OpenAI(api_key=settings.openai_api_key)
+            client = create_llm_client(settings)
         except Exception as exc:
             logger.warning("LLM judge client initialization failed: %s", exc)
 
@@ -883,12 +885,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--disable-llm-judge",
         action="store_true",
-        help="Skip LLM answer scoring even if OPENAI_API_KEY is configured.",
+        help="Skip LLM answer scoring even if a provider API key is configured.",
     )
     parser.add_argument(
         "--enable-direct-llm-baseline",
         action="store_true",
-        help="Run the direct OpenAI baseline without routing. Requires OPENAI_API_KEY and adds cost.",
+        help="Run the direct LLM baseline without routing. Requires a configured provider API key and adds cost.",
     )
     return parser.parse_args()
 
