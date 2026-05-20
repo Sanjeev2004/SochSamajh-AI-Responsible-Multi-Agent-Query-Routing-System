@@ -102,9 +102,6 @@ export default function App() {
         [currentResult]
     );
 
-    const backendProviderLabel =
-        health?.llm_provider === "groq" ? "Provider: Groq" : health?.llm_provider ? `Provider: ${health.llm_provider}` : "Provider configured";
-
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(39,140,137,0.18),_transparent_28%),radial-gradient(circle_at_85%_18%,_rgba(213,119,54,0.16),_transparent_22%),linear-gradient(180deg,_#0d1417_0%,_#111a1d_48%,_#0d1315_100%)] text-stone-100">
             <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -138,9 +135,6 @@ export default function App() {
                                         {health?.status === "ok" ? "System ready" : "Connection unstable"}
                                     </p>
                                 </div>
-                                <p className="mt-2 text-xs text-stone-300/85">
-                                    {health?.status === "ok" ? backendProviderLabel : "API unavailable"}
-                                </p>
                             </div>
 
                             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
