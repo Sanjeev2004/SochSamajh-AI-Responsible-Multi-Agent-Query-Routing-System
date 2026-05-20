@@ -12,6 +12,10 @@ WELLBEING_RE = re.compile(
     r"\b(burnout|burned\s*out|burnt\s*out|stress(?:ed|ful)?|anxious|anxiety|overwhelmed|workload|work\s+pressure)\b",
     re.IGNORECASE,
 )
+EXPLAINER_RE = re.compile(
+    r"^\s*(what\s+(is|are|was|were)|explain|define|meaning\s+of|tell\s+me\s+about|how\s+(does|do|is|are).+\bwork)\b",
+    re.IGNORECASE,
+)
 WELLBEING_DISCLAIMER = (
     "This is general wellbeing information, not a diagnosis or a substitute for care from a qualified mental health professional."
 )
@@ -19,6 +23,10 @@ WELLBEING_DISCLAIMER = (
 
 def _is_wellbeing_query(query: str) -> bool:
     return bool(WELLBEING_RE.search(query))
+
+
+def _is_explainer_query(query: str) -> bool:
+    return bool(EXPLAINER_RE.search(query))
 
 
 def _fallback_wellbeing_response(query: str) -> str:
@@ -52,10 +60,18 @@ def _fallback_wellbeing_response(query: str) -> str:
 def run_general_agent(query: str, classification: ClassificationOutput, settings: Settings) -> AgentResponse:
     try:
         ambiguity_instruction = ""
-        if classification.domain == "unknown":
+        if classification.domain == "unknown" and not _is_explainer_query(query):
             ambiguity_instruction = (
                 "The query is ambiguous. Ask 2-3 concise clarification questions to identify whether the issue is medical, legal, or general. "
                 "Do not guess the domain too early. Help the user narrow it down with practical clarifying questions. "
+            )
+
+        explainer_instruction = ""
+        if _is_explainer_query(query):
+            explainer_instruction = (
+                "The user is asking a clear educational or explainer question. Answer it directly. "
+                "Do not ask for more information unless the subject itself is missing. "
+                "Use a simple definition first, then 2-4 short bullets or a compact example if useful. "
             )
 
         wellbeing_instruction = ""
@@ -76,6 +92,7 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
             "Keep response compact and readable. Use hyphen bullets when needed. "
             "Do not use markdown tables, heading markers, or pipe-separated formatting. "
             f"{ambiguity_instruction}"
+            f"{explainer_instruction}"
             f"{wellbeing_instruction}"
             "If user asks for medical or legal advice, keep it general and encourage professional help."
         )
@@ -94,6 +111,15 @@ def run_general_agent(query: str, classification: ClassificationOutput, settings
             return AgentResponse(
                 content=_fallback_wellbeing_response(query),
                 disclaimers=[WELLBEING_DISCLAIMER],
+                safety_notes=[],
+            )
+        if _is_explainer_query(query):
+            return AgentResponse(
+                content=(
+                    "I could not reach the live LLM right now, so I cannot give the full generated explanation yet. "
+                    "Please try again in a moment."
+                ),
+                disclaimers=[],
                 safety_notes=[],
             )
 

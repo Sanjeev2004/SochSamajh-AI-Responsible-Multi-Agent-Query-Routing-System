@@ -59,3 +59,39 @@ def test_wellbeing_fallback_is_not_ambiguity_template(monkeypatch) -> None:
     assert "What to try now:" in response.content
     assert "Stress and anxiety" in response.content
     assert response.disclaimers
+
+
+def test_explainer_query_uses_direct_answer_instruction(monkeypatch) -> None:
+    captured: dict[str, str] = {}
+
+    def fake_call_llm(**kwargs):
+        captured["system_prompt"] = kwargs["system_prompt"]
+        return "Machine learning lets computers learn patterns from data."
+
+    monkeypatch.setattr(general_agent, "call_llm", fake_call_llm)
+
+    response = general_agent.run_general_agent(
+        "What is machine learning?",
+        _classification(),
+        SETTINGS,
+    )
+
+    assert "clear educational or explainer question" in captured["system_prompt"]
+    assert "Do not ask for more information" in captured["system_prompt"]
+    assert "Machine learning" in response.content
+
+
+def test_explainer_fallback_does_not_use_clarification_template(monkeypatch) -> None:
+    def fake_call_llm(**kwargs):
+        raise RuntimeError("api unavailable")
+
+    monkeypatch.setattr(general_agent, "call_llm", fake_call_llm)
+
+    response = general_agent.run_general_agent(
+        "What is machine learning?",
+        _classification(),
+        SETTINGS,
+    )
+
+    assert "To guide you better, please clarify:" not in response.content
+    assert "could not reach the live LLM" in response.content

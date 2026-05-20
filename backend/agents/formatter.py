@@ -122,7 +122,12 @@ def _inject_legal_practical_steps(content: str, high_risk: bool) -> str:
 
 def _inject_ambiguity_clarification(content: str, query: str) -> str:
     low = content.lower()
-    if "to guide you better" in low or "please clarify" in low:
+    if (
+        "to guide you better" in low
+        or "please clarify" in low
+        or "provide more context" in low
+        or "better understand your issue" in low
+    ):
         return content
     lines = [
         "Is this mainly a medical issue, a legal issue, or something else?",
