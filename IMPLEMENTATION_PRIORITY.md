@@ -4,9 +4,9 @@
 
 This document prioritizes improvements from RESEARCH_IMPROVEMENTS.md based on:
 
-- ⭐ **Impact**: How much it strengthens your research contribution
-- ⏱️ **Effort**: Implementation time (Low/Medium/High)
-- 📊 **Visibility**: How noticeable in your project demonstration
+- **Impact**: How much it strengthens your research contribution
+- **Effort**: Implementation time (Low/Medium/High)
+- **Visibility**: How noticeable in your project demonstration
 
 ---
 
@@ -14,7 +14,7 @@ This document prioritizes improvements from RESEARCH_IMPROVEMENTS.md based on:
 
 **Goal: Establish rigorous evaluation framework**
 
-### ✅ Priority 1: Expand Evaluation Dataset (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
+### Priority 1: Expand Evaluation Dataset (Impact 5/5, Effort Low, Visibility High)
 
 - [x] Expand dataset.json to 300 test cases with normalized labels and flags
 - [x] Add these categories:
@@ -40,7 +40,7 @@ cp dataset.json dataset_backup.json
 
 ---
 
-### ✅ Priority 2: Implement Comprehensive Metrics (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
+### Priority 2: Implement Comprehensive Metrics (Impact 5/5, Effort Low, Visibility High)
 
 - [x] Create `backend/evaluation/metrics.py`
 - [x] Calculate:
@@ -64,7 +64,7 @@ cp dataset.json dataset_backup.json
 
 ---
 
-### ✅ Priority 3: Baseline Comparisons (⭐⭐⭐⭐⭐, ⏱️ Medium, 📊 High)
+### Priority 3: Baseline Comparisons (Impact 5/5, Effort Medium, Visibility High)
 
 - [x] Implement 3 baselines:
   - [x] Simple keyword-based routing
@@ -86,7 +86,7 @@ cp dataset.json dataset_backup.json
 
 ---
 
-### ✅ Priority 4: Ablation Studies (⭐⭐⭐⭐⭐, ⏱️ Low, 📊 High)
+### Priority 4: Ablation Studies (Impact 5/5, Effort Low, Visibility High)
 
 - [x] Test system with components disabled:
   - [x] Full system (baseline)
@@ -113,7 +113,7 @@ cp dataset.json dataset_backup.json
 
 **Goal: Enable currently broken features**
 
-### ✅ Priority 5: Fix RAG Retriever (⭐⭐⭐⭐, ⏱️ Medium, 📊 Medium)
+### Priority 5: Fix RAG Retriever (Impact 4/5, Effort Medium, Visibility Medium)
 
 - [ ] Debug and fix sentence-transformers error
 - [ ] Enable retriever in agents
@@ -132,7 +132,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 6: Expand Knowledge Base (⭐⭐⭐, ⏱️ High, 📊 Medium)
+### Priority 6: Expand Knowledge Base (Impact 3/5, Effort High, Visibility Medium)
 
 - [ ] Add 1,000+ documents to knowledge base
 - [ ] Sources:
@@ -155,7 +155,7 @@ pip install sentence-transformers==2.2.2
 
 **Goal: Add unique features for research novelty**
 
-### ✅ Priority 7: Dynamic Risk Assessment (⭐⭐⭐⭐⭐, ⏱️ Medium, 📊 High)
+### Priority 7: Dynamic Risk Assessment (Impact 5/5, Effort Medium, Visibility High)
 
 - [ ] Implement context-aware risk scoring
 - [ ] Add sequential pattern detection (escalation)
@@ -174,7 +174,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 8: Explainability Module (⭐⭐⭐⭐, ⏱️ Medium, 📊 High)
+### Priority 8: Explainability Module (Impact 4/5, Effort Medium, Visibility High)
 
 - [ ] Show which keywords triggered classification
 - [ ] Highlight important words in query
@@ -193,7 +193,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 9: Multi-Agent Collaboration (⭐⭐⭐, ⏱️ High, 📊 Medium)
+### Priority 9: Multi-Agent Collaboration (Impact 3/5, Effort High, Visibility Medium)
 
 - [ ] Handle ambiguous queries (medical + legal)
 - [ ] Run multiple agents in parallel
@@ -210,7 +210,7 @@ pip install sentence-transformers==2.2.2
 
 **Goal: Make project presentable**
 
-### ✅ Priority 10: Write Research Paper Draft (⭐⭐⭐⭐⭐, ⏱️ High, 📊 High)
+### Priority 10: Write Research Paper Draft (Impact 5/5, Effort High, Visibility High)
 
 - [ ] Abstract (250 words)
 - [ ] Introduction (2 pages)
@@ -226,7 +226,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 11: Create Visualizations (⭐⭐⭐⭐, ⏱️ Low, 📊 High)
+### Priority 11: Create Visualizations (Impact 4/5, Effort Low, Visibility High)
 
 - [ ] System architecture diagram
 - [ ] Query flow diagram
@@ -242,7 +242,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 12: Demo Video (⭐⭐⭐⭐, ⏱️ Low, 📊 High)
+### Priority 12: Demo Video (Impact 4/5, Effort Low, Visibility High)
 
 - [ ] 5-minute demo covering:
   - [ ] Problem statement
@@ -257,7 +257,7 @@ pip install sentence-transformers==2.2.2
 
 ## Phase 5: OPTIONAL ENHANCEMENTS (If Time Permits)
 
-### ✅ Priority 13: Human Evaluation (⭐⭐⭐⭐, ⏱️ Medium, 📊 Medium)
+### Priority 13: Human Evaluation (Impact 4/5, Effort Medium, Visibility Medium)
 
 - [ ] Recruit 3-5 evaluators
 - [ ] Create evaluation forms
@@ -268,7 +268,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 14: Monitoring Dashboard (⭐⭐, ⏱️ Medium, 📊 Low)
+### Priority 14: Monitoring Dashboard (Impact 2/5, Effort Medium, Visibility Low)
 
 - [ ] Add Prometheus metrics
 - [ ] Create Grafana dashboard
@@ -278,7 +278,7 @@ pip install sentence-transformers==2.2.2
 
 ---
 
-### ✅ Priority 15: Multi-Modal Support (⭐⭐⭐, ⏱️ High, 📊 Medium)
+### Priority 15: Multi-Modal Support (Impact 3/5, Effort High, Visibility Medium)
 
 - [ ] Add image upload
 - [ ] OCR for prescriptions/documents
@@ -335,7 +335,7 @@ pip install sentence-transformers==2.2.2
 
 Your project is research-ready when you can answer:
 
-### ✅ Research Questions
+### Research Questions
 
 1. **Does multi-agent routing improve safety vs direct LLM?**
    - Need: Baseline comparison, safety metrics
@@ -349,14 +349,14 @@ Your project is research-ready when you can answer:
 4. **How well does risk assessment work?**
    - Need: Risk classification metrics, false positive rate
 
-### ✅ Presentation Quality
+### Presentation Quality
 
 - [ ] Can explain system architecture in 2 minutes
 - [ ] Can show live demo without errors
 - [x] Have 5+ compelling visualizations
 - [x] Have quantitative results to cite
 
-### ✅ Documentation Quality
+### Documentation Quality
 
 - [x] README is comprehensive
 - [ ] Code is well-commented
@@ -376,12 +376,12 @@ High Effort     - Write Paper            - Multi-Modal          - Production Dep
 Medium Effort   - Dynamic Risk           - RAG Fix              - Dashboard
                 - Explainability         - Baseline Compare
 
-Low Effort      - Expand Dataset     ⭐  - Visualizations        - Code Cleanup
-                - Metrics Suite      ⭐  - Demo Video
-                - Ablation Study     ⭐
+Low Effort      - Expand Dataset     *  - Visualizations        - Code Cleanup
+                - Metrics Suite      *  - Demo Video
+                - Ablation Study     *
 ```
 
-**⭐ = Start Here! (Priorities 1-4)**
+*** = Start Here! (Priorities 1-4)**
 
 ---
 
@@ -401,7 +401,7 @@ If stuck on any priority:
 **Focus on depth over breadth:**
 
 - Better to have ONE novel contribution done well than FIVE half-implemented
-- Prioritize items marked ⭐⭐⭐⭐⭐ (5 stars)
+- Prioritize items marked Impact 5/5
 - Skip optional enhancements if time-constrained
 
 **Document everything:**
@@ -416,4 +416,4 @@ If stuck on any priority:
 - Get feedback from professor/advisor
 - Adjust priorities based on feedback
 
-Good luck with your B.Tech major project! 🚀
+Good luck with your B.Tech major project! 

@@ -8,7 +8,6 @@ from langsmith import traceable
 from core.config import Settings, logger
 from core.state import ClassificationOutput
 
-# from agents.router_semantic import semantic_router  # Temporarily disabled
 
 SELF_HARM_KEYWORDS = frozenset([
     "kill myself",
@@ -585,7 +584,6 @@ def _is_vague_query(text: str) -> bool:
     if word_count <= 6 and any(term in normalized_text for term in generic_terms):
         return True
 
-    # Slightly longer but still non-specific prompts should be routed as unknown.
     if word_count <= 12 and any(term in normalized_text for term in ("next step", "urgent guidance", "figure this out")):
         return True
 
@@ -659,7 +657,6 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         domain = "legal"
         reasoning = "Legal remedy terms indicate practical legal intent"
 
-    # Ambiguous mixed-domain prompts should not be over-confidently routed.
     if domain is None and has_medical and has_legal:
         weighted_gap = abs(medical_weighted_score - legal_weighted_score)
         priority_gap = abs(medical_priority_score - legal_priority_score)
@@ -702,7 +699,7 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
                 from agents.router_semantic import semantic_router
 
                 semantic_domain = semantic_router.predict(query, threshold=0.42)
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:
                 logger.info("Semantic routing unavailable; using heuristic fallback: %s", exc)
 
         if semantic_domain and domain != "unknown":

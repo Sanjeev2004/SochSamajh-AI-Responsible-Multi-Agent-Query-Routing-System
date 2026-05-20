@@ -5,11 +5,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Configure logging
 logger = logging.getLogger("semantic_router")
 
-# Define anchor queries to represent each domain
-# In a full research implementation, these would be centroids of a larger dataset.
 DOMAIN_ANCHORS = {
     "medical": [
         "What are the symptoms of flu?",
@@ -58,10 +55,8 @@ class SemanticRouter:
             
         logger.info("Initializing Semantic Router (loading model)...")
         try:
-            # Load a lightweight model optimized for semantic search
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
             
-            # Pre-compute anchor embeddings
             self.anchor_embeddings = {}
             for domain, anchors in DOMAIN_ANCHORS.items():
                 self.anchor_embeddings[domain] = self.model.encode(anchors)
@@ -73,33 +68,18 @@ class SemanticRouter:
             self.model = None
 
     def predict(self, query: str, threshold: float = 0.3) -> str | None:
-        """
-        Predict the domain of a query using semantic similarity.
-        
-        Args:
-            query: User query string
-            threshold: Minimum similarity score to accept a prediction
-            
-        Returns:
-            Predicted domain ('medical', 'legal', 'general') or None if low confidence
-        """
         if not self.model:
             return None
 
-        # Encode the query
         query_embedding = self.model.encode([query])
 
-        # meaningful similarity score for each domain (average of top 3 matches)
         scores = {}
         for domain, anchors_emb in self.anchor_embeddings.items():
-            # Calculate similarity between query and all domain anchors
             similarities = cosine_similarity(query_embedding, anchors_emb)[0]
-            # Take the mean of the top 3 most similar anchors to be robust
             top_k = min(3, len(similarities))
             top_scores = np.partition(similarities, -top_k)[-top_k:]
             scores[domain] = np.mean(top_scores)
 
-        # Find best domain
         best_domain = max(scores, key=scores.get)
         best_score = scores[best_domain]
 
@@ -110,5 +90,4 @@ class SemanticRouter:
         
         return None
 
-# Global instance
 semantic_router = SemanticRouter()

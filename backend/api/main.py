@@ -15,7 +15,6 @@ app = FastAPI(title="Medical and Legal Query Router", version="1.0.0")
 
 app.include_router(feedback_router)
 
-# Handle wildcard origins for CORS
 allow_credentials = True
 if "*" in settings.backend_cors_origins:
     allow_credentials = False
@@ -78,6 +77,6 @@ async def route_query(payload: RouteRequest) -> RouterResponse:
             sources=response.sources,
             pipeline_trace=state.get("pipeline_trace", []),
         )
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         logger.exception("Routing failed")
         raise HTTPException(status_code=500, detail="Routing failed") from exc

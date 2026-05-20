@@ -81,7 +81,6 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
     retrieval = get_retrieval_result(query=query, domain="medical", settings=settings)
     context = retrieval.context
     try:
-        # 1. Retrieve Context
         urgency_instruction = ""
         if classification.risk_level == "high":
             urgency_instruction = (
@@ -93,7 +92,6 @@ def run_medical_agent(query: str, classification: ClassificationOutput, settings
                 "Include a 'Warning signs' section that should prompt urgent in-person medical evaluation. "
             )
 
-        # 2. Augment Prompt
         system_prompt = (
             "You are a medical information assistant. Provide educational, high-level information only. "
             "Do NOT diagnose, prescribe, or provide dosages. Encourage professional medical help when appropriate. "

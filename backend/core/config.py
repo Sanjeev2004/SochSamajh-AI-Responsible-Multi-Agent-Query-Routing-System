@@ -1,14 +1,3 @@
-"""Configuration management for the Medical & Legal Router system.
-
-This module handles loading and validating environment variables,
-managing API keys, and providing a singleton Settings object for
-use throughout the application.
-
-Example:
-    >>> settings = Settings.load()
-    >>> print(settings.openrouter_model)
-    'openai/gpt-3.5-turbo'
-"""
 from __future__ import annotations
 
 import logging
@@ -34,22 +23,6 @@ def _clean_env_value(value: str | None, *, remove_all_whitespace: bool = False) 
 
 @dataclass(frozen=True)
 class Settings:
-    """Immutable configuration container for the application.
-    
-    All settings are loaded from environment variables and cached
-    in a frozen dataclass to prevent accidental modifications.
-    
-    Attributes:
-        openrouter_api_key: API key for OpenRouter LLM provider
-        openrouter_model: Model identifier (e.g., 'openai/gpt-3.5-turbo')
-        openrouter_base_url: Base URL for OpenRouter API
-        openrouter_site_url: Optional site URL for API
-        openrouter_app_name: Optional app name for analytics
-        langsmith_project: LangSmith project for tracing (optional)
-        langsmith_api_key: LangSmith API key for tracing (optional)
-        langchain_endpoint: LangChain endpoint (optional)
-        backend_cors_origins: List of allowed CORS origins
-    """
 
     langsmith_project: str | None
     langsmith_api_key: str | None
@@ -66,18 +39,6 @@ class Settings:
 
     @staticmethod
     def load() -> "Settings":
-        """Load configuration from environment variables.
-        
-        Loads all configuration values from .env file or environment.
-        Provides sensible defaults for optional values.
-        Automatically adds localhost to CORS origins for development.
-        
-        Returns:
-            Settings: Frozen dataclass with loaded configuration
-            
-        Raises:
-            Warning: Logged if required OPENROUTER_API_KEY is missing
-        """
 
         langsmith_project = os.getenv("LANGSMITH_PROJECT")
         langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
@@ -90,15 +51,12 @@ class Settings:
         enable_llm = os.getenv("ENABLE_LLM", "false").strip().lower() in {"1", "true", "yes"}
         enable_retriever = os.getenv("ENABLE_RETRIEVER", "false").strip().lower() in {"1", "true", "yes"}
         enable_semantic_router = os.getenv("ENABLE_SEMANTIC_ROUTER", "false").strip().lower() in {"1", "true", "yes"}
-        # Parse CORS origins - allow comma-separated string
         cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "").strip()
         if cors_origins_str:
             backend_cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
         else:
-            # Default to allow all origins when not specified.
             backend_cors_origins = ["*"]
 
-        # Ensure localhost is allowed for local dev unless using wildcard.
         dev_origins = ["http://localhost:5173", "http://localhost:5174"]
         if "*" not in backend_cors_origins:
             for origin in dev_origins:
@@ -110,7 +68,6 @@ class Settings:
 
         tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2")
         if tracing_enabled is None:
-            # Default to disabled so request handling does not depend on tracing.
             tracing_enabled = "false"
         os.environ.setdefault("LANGCHAIN_TRACING_V2", tracing_enabled)
         if langsmith_project:

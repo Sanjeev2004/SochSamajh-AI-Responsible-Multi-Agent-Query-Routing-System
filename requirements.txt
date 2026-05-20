@@ -1,4 +1,1 @@
-# Root-level requirements file for deployment platforms
-# This references the actual backend requirements
-
 -r backend/requirements.txt

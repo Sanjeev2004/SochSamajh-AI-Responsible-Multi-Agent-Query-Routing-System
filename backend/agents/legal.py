@@ -75,14 +75,12 @@ def run_legal_agent(query: str, classification: ClassificationOutput, settings: 
     retrieval = get_retrieval_result(query=query, domain="legal", settings=settings)
     context = retrieval.context
     try:
-        # 1. Retrieve Context
         urgency_instruction = ""
         if classification.risk_level == "high":
             urgency_instruction = (
                 "If user may be in immediate danger, start with an 'Immediate safety' section before legal process details. "
             )
 
-        # 2. Augment Prompt with retrieved context
         system_prompt = (
             "You are a legal information assistant. Provide general, high-level information only. "
             "Do NOT provide definitive legal advice. Note that laws vary by jurisdiction. "

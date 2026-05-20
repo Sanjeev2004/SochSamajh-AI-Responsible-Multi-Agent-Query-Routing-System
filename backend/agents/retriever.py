@@ -34,7 +34,7 @@ class Retriever:
             domain = "medical" if "medical" in filename.name else "legal"
             try:
                 content = filename.read_text(encoding="utf-8")
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:
                 logger.warning("Failed to read fallback retrieval file %s: %s", filename, exc)
                 continue
 
@@ -81,7 +81,7 @@ class Retriever:
                 SourceCitation(
                     title=first_line[:90],
                     source=str(chunk["source"]),
-                    domain=chunk["domain"],  # type: ignore[arg-type]
+                    domain=chunk["domain"],
                     snippet=text[:280],
                     score=float(overlap),
                 )
@@ -104,17 +104,16 @@ class Retriever:
         try:
             import chromadb
             from sentence_transformers import SentenceTransformer
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             logger.warning("Retriever dependencies unavailable: %s", exc)
             return
 
         try:
             self.client = chromadb.PersistentClient(path=str(CHROMA_PATH))
             self.collection = self.client.get_or_create_collection(name="knowledge_base")
-            # Avoid hanging on model downloads in restricted or offline environments.
             self.model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
             self._ready = True
-        except BaseException as exc:  # pragma: no cover
+        except BaseException as exc:
             logger.warning("Retriever initialization failed: %s", exc)
 
     def get_relevant_context(self, query: str, domain: str | None = None, top_k: int = 2) -> str:
@@ -134,7 +133,7 @@ class Retriever:
                 n_results=top_k,
                 where=where_filter,
             )
-        except BaseException as exc:  # pragma: no cover
+        except BaseException as exc:
             logger.warning("Retriever query failed: %s", exc)
             return self._fallback_relevant_sources(query=query, domain=domain, top_k=top_k)
 
@@ -156,7 +155,7 @@ class Retriever:
                 SourceCitation(
                     title=str(title),
                     source=str(source),
-                    domain=metadata.get("domain", domain),  # type: ignore[arg-type]
+                    domain=metadata.get("domain", domain),
                     snippet=str(document)[:280],
                     score=score,
                 )

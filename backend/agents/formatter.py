@@ -47,16 +47,12 @@ def _clean_markdown_noise(text: str) -> str:
                 cleaned_lines.append("")
             continue
 
-        # Remove markdown heading markers.
         line = MARKDOWN_HEADING_RE.sub("", line)
-        # Remove bold/italic/code markers.
         line = line.replace("**", "").replace("__", "").replace("`", "")
 
-        # Drop pure markdown table separator rows like |---|---|
         if TABLE_SEPARATOR_RE.fullmatch(line):
             continue
 
-        # Convert pipe-delimited table rows into readable sentence fragments.
         if line.count("|") >= 2:
             cells = [cell.strip() for cell in line.strip("|").split("|") if cell.strip()]
             if cells:
@@ -65,7 +61,6 @@ def _clean_markdown_noise(text: str) -> str:
         cleaned_lines.append(line)
 
     cleaned = "\n".join(cleaned_lines)
-    # Limit excess blank lines.
     cleaned = EXCESS_BLANK_LINES_RE.sub("\n\n", cleaned)
     return cleaned.strip()
 

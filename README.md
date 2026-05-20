@@ -454,7 +454,7 @@ This project is configured for easy deployment to Render with the included `Proc
 
    | Key                    | Value                                                  | Required |
    | ---------------------- | ------------------------------------------------------ | -------- |
-   | `OPENAI_API_KEY`       | Your OpenAI API key                                    | ✅ Yes   |
+   | `OPENAI_API_KEY`       | Your OpenAI API key                                    | Yes      |
    | `OPENAI_MODEL`         | `gpt-4o` (or your preferred model)                     | Optional |
    | `BACKEND_CORS_ORIGINS` | Your frontend URL (e.g., `https://yourapp.vercel.app`) | Optional |
    | `LANGSMITH_API_KEY`    | Your LangSmith key (for observability)                 | Optional |
@@ -522,13 +522,13 @@ The application uses the following environment variables:
 
 | Variable               | Description                     | Default                 | Required |
 | ---------------------- | ------------------------------- | ----------------------- | -------- |
-| `OPENAI_API_KEY`       | OpenAI API key for LLM calls    | -                       | ✅       |
-| `OPENAI_MODEL`         | OpenAI model to use             | `gpt-4o`                | ❌       |
-| `ENABLE_LLM`           | Enable live OpenAI API calls    | `false`                 | ❌       |
-| `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` | ❌       |
-| `LANGSMITH_API_KEY`    | LangSmith API key for tracing   | -                       | ❌       |
-| `LANGSMITH_PROJECT`    | LangSmith project name          | `medical-legal-router`  | ❌       |
-| `LANGCHAIN_TRACING_V2` | Enable LangChain tracing        | `false`                 | ❌       |
+| `OPENAI_API_KEY`       | OpenAI API key for LLM calls    | -                       | Yes       |
+| `OPENAI_MODEL`         | OpenAI model to use             | `gpt-4o`                | No       |
+| `ENABLE_LLM`           | Enable live OpenAI API calls    | `false`                 | No       |
+| `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` | No       |
+| `LANGSMITH_API_KEY`    | LangSmith API key for tracing   | -                       | No       |
+| `LANGSMITH_PROJECT`    | LangSmith project name          | `medical-legal-router`  | No       |
+| `LANGCHAIN_TRACING_V2` | Enable LangChain tracing        | `false`                 | No       |
 
 **Alternative: OpenRouter**
 

@@ -11,7 +11,6 @@ def call_llm(
     temperature: float = 0.2, 
     max_tokens: int = 512
 ) -> str:
-    """Shared helper to call OpenAI LLM."""
     if not settings.enable_llm:
         raise RuntimeError("LLM calls are disabled. Set ENABLE_LLM=true to use the OpenAI API.")
 

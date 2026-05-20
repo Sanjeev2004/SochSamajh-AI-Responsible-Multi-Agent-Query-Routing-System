@@ -69,7 +69,7 @@ async def submit_feedback(feedback: FeedbackRequest) -> dict[str, str]:
                 entry,
             )
             connection.commit()
-    except sqlite3.Error as exc:  # pragma: no cover
+    except sqlite3.Error as exc:
         raise HTTPException(status_code=500, detail="Failed to store feedback.") from exc
 
     return {"status": "success", "message": "Feedback received"}

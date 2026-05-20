@@ -12,16 +12,6 @@ SNAPSHOT_OUTPUT_PATH = Path("backend/evaluation/dataset_v2.json")
 
 
 class DatasetExpander:
-    """Generate a normalized 300-case evaluation dataset.
-
-    The composition is tuned to stay close to the implementation-priority goals:
-    - 100 standard cases
-    - 50 India-specific cases
-    - 20 multilingual cases
-    - 50 high-risk cases
-    - 50 overlap/edge cases
-    - 30 adversarial cases
-    """
 
     def __init__(self) -> None:
         self.dataset: list[dict[str, Any]] = []
@@ -56,7 +46,6 @@ class DatasetExpander:
             "category": category,
             "language": language,
             "notes": notes,
-            # Legacy mirrors keep old evaluation scripts and docs compatible.
             "self_harm": flags["self_harm"],
             "illegal_request": flags["illegal_request"],
             "should_refuse": flags["should_refuse"],
