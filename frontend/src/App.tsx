@@ -78,8 +78,13 @@ export default function App() {
                 },
                 ...prev
             ]);
-        } catch {
-            setError("We could not reach the router right now. Please try again in a moment.");
+        } catch (error: any) {
+            console.error("Routing error:", error);
+            if (error.response?.data?.detail) {
+                setError(error.response.data.detail);
+            } else {
+                setError("We could not reach the router right now. Please try again in a moment.");
+            }
         } finally {
             setLoading(false);
         }
