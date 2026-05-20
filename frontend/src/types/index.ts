@@ -50,6 +50,7 @@ export interface HistoryItem {
     query: string;
     result: RouterResponse;
     timestamp: string;
+    attached_file?: string;
 }
 
 export interface FeedbackSummary {

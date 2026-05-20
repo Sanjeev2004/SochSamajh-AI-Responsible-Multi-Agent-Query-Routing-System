@@ -1,9 +1,11 @@
-import { AlertTriangle, FileSearch, FileStack, GitBranch, ShieldAlert, Sparkles } from "lucide-react";
+import { AlertTriangle, FileSearch, FileStack, GitBranch, ShieldAlert, Sparkles, Paperclip } from "lucide-react";
 import { RouterResponse } from "../types";
 import { SafetyBadge, domainToTone, riskToTone } from "./SafetyBadge";
 
 interface ResponseDisplayProps {
     result: RouterResponse;
+    query?: string;
+    attachedFile?: string;
 }
 
 function routerSummary(result: RouterResponse) {
@@ -11,7 +13,7 @@ function routerSummary(result: RouterResponse) {
     return `${domainLabel} query, ${result.classification.risk_level} risk.`;
 }
 
-export function ResponseDisplay({ result }: ResponseDisplayProps) {
+    export function ResponseDisplay({ result, query, attachedFile }: ResponseDisplayProps) {
     const { classification, safety_flags } = result;
     const confidencePercent = Math.round((classification.confidence ?? 0) * 100);
     const trace = result.pipeline_trace ?? [];
@@ -26,6 +28,17 @@ export function ResponseDisplay({ result }: ResponseDisplayProps) {
                         <h3 className="mt-2 font-['Iowan_Old_Style','Palatino_Linotype','Book_Antiqua',serif] text-3xl text-stone-50">
                             Routed response
                         </h3>
+                        {query && (
+                            <p className="mt-2 text-sm text-stone-300">
+                                <span className="font-semibold text-stone-500">Query:</span> {query}
+                            </p>
+                        )}
+                        {attachedFile && (
+                            <p className="mt-1 flex items-center gap-1.5 text-sm text-teal-200">
+                                <Paperclip className="h-3.5 w-3.5 text-teal-400" />
+                                <span className="font-semibold text-stone-500">Document:</span> {attachedFile}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">

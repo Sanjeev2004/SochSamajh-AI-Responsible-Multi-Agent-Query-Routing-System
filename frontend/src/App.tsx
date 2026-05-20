@@ -73,7 +73,8 @@ export default function App() {
                     id: result.request_id,
                     query,
                     result,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    attached_file: file?.name
                 },
                 ...prev
             ]);
@@ -171,7 +172,11 @@ export default function App() {
 
                         {currentResult && !loading && (
                             <div className="space-y-4">
-                                <ResponseDisplay result={currentResult} />
+                                <ResponseDisplay 
+                                    result={currentResult} 
+                                    query={currentHistoryItem?.query} 
+                                    attachedFile={currentHistoryItem?.attached_file} 
+                                />
 
                                 <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
@@ -300,7 +305,12 @@ export default function App() {
                                                     {idx === 0 ? "Latest: " : ""}
                                                     {item.query}
                                                 </p>
-                                                <span className="whitespace-nowrap rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                                                {item.attached_file && (
+                                                    <p className="mt-1 text-[11px] text-teal-300/80 line-clamp-1">
+                                                        📎 {item.attached_file}
+                                                    </p>
+                                                )}
+                                                <span className="whitespace-nowrap rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-400 mt-2 block w-fit">
                                                     {item.result.classification.domain}
                                                 </span>
                                             </div>
