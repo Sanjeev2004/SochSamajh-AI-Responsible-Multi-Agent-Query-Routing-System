@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
@@ -18,10 +20,16 @@ app = FastAPI(title="Medical and Legal Query Router", version="1.0.0")
 @app.on_event("startup")
 async def warmup_retriever():
     from agents.retriever import retriever
-    import asyncio
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, retriever._initialize)
-    logger.info("Retriever warmed up on startup")
+
+    async def _warmup() -> None:
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, retriever._initialize)
+            logger.info("Retriever warmed up on startup")
+        except Exception:
+            logger.exception("Retriever warmup failed")
+
+    asyncio.create_task(_warmup())
 
 app.include_router(feedback_router)
 
@@ -74,6 +82,7 @@ def root() -> dict:
         "status": "ok",
         "health": "/api/health",
         "route": "/api/route",
+        "stream": "/api/route/stream",
         "docs": "/docs",
     }
 
@@ -108,3 +117,42 @@ async def route_query(payload: RouteRequest) -> RouterResponse:
     except Exception as exc:
         logger.exception("Routing failed")
         raise HTTPException(status_code=500, detail="Routing failed") from exc
+
+
+@app.post("/api/route/stream")
+async def route_query_stream(payload: RouteRequest) -> StreamingResponse:
+    """Server-Sent Events endpoint.
+
+    Streams classification metadata immediately, then yields LLM tokens
+    as they are generated. Events are newline-delimited JSON with a 'type'
+    field: 'metadata' | 'token' | 'done' | 'error'.
+    """
+    from services.streaming_service import build_sse_stream
+
+    def _sync_gen():
+        yield from build_sse_stream(
+            query=payload.query,
+            settings=settings,
+            user_context=payload.user_context,
+        )
+
+    async def _async_gen():
+        loop = asyncio.get_running_loop()
+        # Run the synchronous generator in a thread pool to avoid blocking the event loop
+        gen = _sync_gen()
+        while True:
+            try:
+                chunk = await loop.run_in_executor(None, next, gen)
+                yield chunk
+            except StopIteration:
+                break
+
+    logger.info("Incoming stream request | len=%d", len(payload.query))
+    return StreamingResponse(
+        _async_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disable Nginx buffering in prod
+        },
+    )

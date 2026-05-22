@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Activity,
     AlertTriangle,
@@ -7,7 +7,7 @@ import {
     ThumbsDown,
     ThumbsUp
 } from "lucide-react";
-import { getFeedbackSummary, getHealth, routeQuery, sendFeedback } from "./hooks/useApi";
+import { getFeedbackSummary, getHealth, routeQueryStream, sendFeedback } from "./hooks/useApi";
 import { FeedbackSummary, HealthResponse, HistoryItem, RouterResponse } from "./types";
 import { QueryInput } from "./components/QueryInput";
 import { ResponseDisplay } from "./components/ResponseDisplay";
@@ -17,10 +17,12 @@ export default function App() {
     const [health, setHealth] = useState<HealthResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [streamingText, setStreamingText] = useState<string | null>(null);
     const [currentResult, setCurrentResult] = useState<RouterResponse | null>(null);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [feedbackSent, setFeedbackSent] = useState(false);
     const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
+    const streamAbortRef = useRef<AbortController | null>(null);
 
     const currentHistoryItem = useMemo(() => {
         if (!currentResult) return null;
@@ -57,33 +59,67 @@ export default function App() {
         };
     }, []);
 
-    async function handleSubmit(query: string, userContext: string | null, fileName: string | null) {
+    function handleSubmit(query: string, userContext: string | null, fileName: string | null) {
+        // Cancel any in-flight stream
+        streamAbortRef.current?.abort();
+
         setError(null);
         setLoading(true);
+        setStreamingText("");
+        setCurrentResult(null);
         setFeedbackSent(false);
-        try {
-            const result = await routeQuery(query, userContext ?? undefined);
-            setCurrentResult(result);
-            setHistory((prev) => [
-                {
-                    id: result.request_id,
-                    query,
-                    result,
-                    timestamp: new Date().toISOString(),
-                    attached_file: fileName ?? undefined
-                },
-                ...prev
-            ]);
-        } catch (error: any) {
-            console.error("Routing error:", error);
-            if (error.response?.data?.detail) {
-                setError(error.response.data.detail);
-            } else {
-                setError("We could not reach the router right now. Please try again in a moment.");
-            }
-        } finally {
-            setLoading(false);
-        }
+
+        // Holds the partial RouterResponse built from metadata event
+        let pendingResult: RouterResponse | null = null;
+
+        const controller = routeQueryStream(query, userContext, {
+            onMetadata(data) {
+                // Build a partial RouterResponse from the classification metadata
+                // so ResponseDisplay can render domain badge + disclaimers immediately
+                pendingResult = {
+                    response: "",
+                    classification: data.classification,
+                    disclaimers: data.disclaimers ?? [],
+                    safety_flags: data.safety_flags,
+                    request_id: data.request_id,
+                    sources: [],
+                    pipeline_trace: [],
+                };
+                setCurrentResult(pendingResult);
+            },
+            onToken(text) {
+                setStreamingText((prev) => (prev ?? "") + text);
+            },
+            onDone(data) {
+                // Finalise the result with full text + sources
+                const finalResult: RouterResponse = {
+                    ...(pendingResult as RouterResponse),
+                    response: data.full_text,
+                    request_id: data.request_id,
+                    sources: data.sources ?? [],
+                };
+                setCurrentResult(finalResult);
+                setStreamingText(null);
+                setLoading(false);
+                setHistory((prev) => [
+                    {
+                        id: data.request_id,
+                        query,
+                        result: finalResult,
+                        timestamp: new Date().toISOString(),
+                        attached_file: fileName ?? undefined,
+                    },
+                    ...prev,
+                ]);
+            },
+            onError(message) {
+                setError(message);
+                setStreamingText(null);
+                setLoading(false);
+            },
+        });
+
+        streamAbortRef.current = controller;
     }
 
     async function handleFeedback(rating: "up" | "down") {
@@ -169,14 +205,15 @@ export default function App() {
                             </div>
                         )}
 
-                        {loading && <LoadingState />}
+                        {loading && !currentResult && <LoadingState />}
 
-                        {currentResult && !loading && (
+                        {currentResult && (
                             <div className="space-y-4">
                                 <ResponseDisplay 
                                     result={currentResult} 
-                                    query={currentHistoryItem?.query} 
-                                    attachedFile={currentHistoryItem?.attached_file} 
+                                    query={currentHistoryItem?.query ?? ""}
+                                    attachedFile={currentHistoryItem?.attached_file}
+                                    streamingText={streamingText}
                                 />
 
                                 <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">

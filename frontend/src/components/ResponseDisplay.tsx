@@ -6,6 +6,8 @@ interface ResponseDisplayProps {
     result: RouterResponse;
     query?: string;
     attachedFile?: string;
+    /** Live token stream — null when streaming is complete */
+    streamingText?: string | null;
 }
 
 function routerSummary(result: RouterResponse) {
@@ -13,7 +15,7 @@ function routerSummary(result: RouterResponse) {
     return `${domainLabel} query, ${result.classification.risk_level} risk.`;
 }
 
-    export function ResponseDisplay({ result, query, attachedFile }: ResponseDisplayProps) {
+    export function ResponseDisplay({ result, query, attachedFile, streamingText }: ResponseDisplayProps) {
     const { classification, safety_flags } = result;
     const confidencePercent = Math.round((classification.confidence ?? 0) * 100);
     const trace = result.pipeline_trace ?? [];
@@ -55,9 +57,26 @@ function routerSummary(result: RouterResponse) {
                     <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-400">
                         <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                         Routed answer
+                        {streamingText !== null && streamingText !== undefined && (
+                            <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-teal-300/20 bg-teal-300/10 px-2 py-0.5 text-[10px] text-teal-200">
+                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-300" />
+                                Generating
+                            </span>
+                        )}
                     </div>
                     <p className="whitespace-pre-wrap break-words text-sm leading-7 text-stone-100 sm:text-[15px]">
-                        {result.response}
+                        {streamingText !== null && streamingText !== undefined
+                            ? streamingText || (
+                                <span className="inline-flex items-center gap-1.5 text-stone-500">
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: "0ms" }} />
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: "150ms" }} />
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: "300ms" }} />
+                                </span>
+                              )
+                            : result.response}
+                        {streamingText !== null && streamingText !== undefined && streamingText.length > 0 && (
+                            <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-teal-300" />
+                        )}
                     </p>
                 </div>
 
