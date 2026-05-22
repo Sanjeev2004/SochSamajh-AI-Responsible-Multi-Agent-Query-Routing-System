@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Any
 
@@ -10,27 +10,75 @@ logger = logging.getLogger("medical_legal_router")
 logger.setLevel(logging.INFO)
 
 class Settings(BaseSettings):
-    langsmith_project: str | None = Field(default=None, alias="LANGSMITH_PROJECT")
-    langsmith_api_key: str | None = Field(default=None, alias="LANGSMITH_API_KEY")
-    langchain_endpoint: str | None = Field(default=None, alias="LANGCHAIN_ENDPOINT")
+    langsmith_project: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LANGSMITH_PROJECT", "langsmith_project"),
+    )
+    langsmith_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LANGSMITH_API_KEY", "langsmith_api_key"),
+    )
+    langchain_endpoint: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LANGCHAIN_ENDPOINT", "langchain_endpoint"),
+    )
     
-    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
-    openai_model: str = Field(default="gpt-4o", alias="OPENAI_MODEL")
-    openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
-    openai_timeout_seconds: float = Field(default=20.0, alias="OPENAI_TIMEOUT_SECONDS")
-    openai_max_retries: int = Field(default=1, alias="OPENAI_MAX_RETRIES")
+    openai_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "openai_api_key"),
+    )
+    openai_model: str = Field(
+        default="gpt-4o",
+        validation_alias=AliasChoices("OPENAI_MODEL", "openai_model"),
+    )
+    openai_base_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_BASE_URL", "openai_base_url"),
+    )
+    openai_timeout_seconds: float = Field(
+        default=20.0,
+        validation_alias=AliasChoices("OPENAI_TIMEOUT_SECONDS", "openai_timeout_seconds"),
+    )
+    openai_max_retries: int = Field(
+        default=1,
+        validation_alias=AliasChoices("OPENAI_MAX_RETRIES", "openai_max_retries"),
+    )
     
-    groq_api_key: str | None = Field(default=None, alias="GROQ_API_KEY")
-    groq_model: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL")
-    groq_base_url: str = Field(default="https://api.groq.com/openai/v1", alias="GROQ_BASE_URL")
+    groq_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("GROQ_API_KEY", "groq_api_key"),
+    )
+    groq_model: str = Field(
+        default="llama-3.3-70b-versatile",
+        validation_alias=AliasChoices("GROQ_MODEL", "groq_model"),
+    )
+    groq_base_url: str = Field(
+        default="https://api.groq.com/openai/v1",
+        validation_alias=AliasChoices("GROQ_BASE_URL", "groq_base_url"),
+    )
     
-    enable_llm: bool = Field(default=False, alias="ENABLE_LLM")
-    enable_retriever: bool = Field(default=False, alias="ENABLE_RETRIEVER")
-    enable_semantic_router: bool = Field(default=False, alias="ENABLE_SEMANTIC_ROUTER")
+    enable_llm: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("ENABLE_LLM", "enable_llm"),
+    )
+    enable_retriever: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("ENABLE_RETRIEVER", "enable_retriever"),
+    )
+    enable_semantic_router: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("ENABLE_SEMANTIC_ROUTER", "enable_semantic_router"),
+    )
     
-    llm_fallback_confidence_threshold: float = Field(default=0.60, alias="LLM_FALLBACK_CONFIDENCE_THRESHOLD")
+    llm_fallback_confidence_threshold: float = Field(
+        default=0.60,
+        validation_alias=AliasChoices("LLM_FALLBACK_CONFIDENCE_THRESHOLD", "llm_fallback_confidence_threshold"),
+    )
     
-    llm_provider: str = Field(default="openai", alias="LLM_PROVIDER")
+    llm_provider: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLM_PROVIDER", "llm_provider"),
+    )
     backend_cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
     model_config = SettingsConfigDict(
@@ -55,11 +103,13 @@ class Settings(BaseSettings):
         # Resolve LLM provider mapping
         requested_provider = self.llm_provider.strip().lower()
         
-        # If groq key is provided and no provider specified, default to groq
-        if not requested_provider or requested_provider not in {"openai", "groq"}:
+        # If no provider is explicitly configured, prefer Groq when available.
+        if not requested_provider:
             self.llm_provider = "groq" if self.groq_api_key else "openai"
-        else:
+        elif requested_provider in {"openai", "groq"}:
             self.llm_provider = requested_provider
+        else:
+            self.llm_provider = "groq" if self.groq_api_key else "openai"
             
         if self.llm_provider == "groq":
             self.openai_api_key = self.groq_api_key

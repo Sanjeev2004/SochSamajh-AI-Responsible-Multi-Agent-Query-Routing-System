@@ -15,10 +15,46 @@ _llm_chain = None
 def _get_llm_chain(settings: Settings):
     global _llm_chain
     if _llm_chain is None:
-        from langchain_openai import ChatOpenAI
-        from langchain_core.prompts import PromptTemplate
-        from langchain_core.output_parsers import JsonOutputParser
-        from pydantic import BaseModel, Field as PydanticField
+        try:
+            from langchain_openai import ChatOpenAI
+            from langchain_core.prompts import PromptTemplate
+            from langchain_core.output_parsers import JsonOutputParser
+            from pydantic import BaseModel, Field as PydanticField
+        except ModuleNotFoundError:
+            logger.warning("langchain_openai unavailable; using direct OpenAI fallback for classification")
+
+            class _DirectChain:
+                def invoke(self, payload: dict[str, str]) -> dict[str, object]:
+                    from openai import OpenAI
+
+                    client = OpenAI(
+                        api_key=settings.openai_api_key,
+                        base_url=settings.openai_base_url,
+                        timeout=settings.openai_timeout_seconds,
+                        max_retries=settings.openai_max_retries,
+                    )
+                    response = client.chat.completions.create(
+                        model=settings.openai_model or "gpt-4o",
+                        temperature=0.0,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are an expert intent router for an AI assistant. "
+                                    "Classify the user query into medical, legal, or general, "
+                                    "and return JSON with domain, risk_level, reasoning, and confidence."
+                                ),
+                            },
+                            {"role": "user", "content": payload["query"]},
+                        ],
+                    )
+                    content = response.choices[0].message.content or "{}"
+                    import json
+
+                    return json.loads(content)
+
+            _llm_chain = _DirectChain()
+            return _llm_chain
 
         class LLMClassificationOutput(BaseModel):
             domain: Domain = PydanticField(description="One of: 'medical', 'legal', 'general'")

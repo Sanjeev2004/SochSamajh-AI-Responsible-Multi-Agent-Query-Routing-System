@@ -205,14 +205,10 @@ async def route_query_stream(request: Request, payload: RouteRequest) -> Streami
         loop = asyncio.get_running_loop()
         gen = _sync_gen()
         while True:
-            try:
-                chunk = await loop.run_in_executor(None, next, gen)
-                # Track tokens to update memory on done
-                if b'"type": "token"' in chunk.encode() if isinstance(chunk, str) else b'"type": "token"' in chunk:
-                    pass  # tokens tracked in streaming_service
-                yield chunk
-            except StopIteration:
+            chunk = await loop.run_in_executor(None, lambda: next(gen, None))
+            if chunk is None:
                 break
+            yield chunk
 
         # After stream ends, persist turns to memory
         if payload.session_id:

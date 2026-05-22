@@ -86,12 +86,15 @@ def stream_llm(
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": query},
     ]
-    with client.chat.completions.stream(
+    stream = client.chat.completions.create(
         messages=messages,
         model=settings.openai_model,
         max_tokens=max_tokens,
         temperature=temperature,
-    ) as stream:
-        for text_chunk in stream.text_stream:
-            if text_chunk:
-                yield text_chunk
+        stream=True,
+    )
+    for chunk in stream:
+        if chunk.choices and len(chunk.choices) > 0:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
