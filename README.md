@@ -1,4 +1,4 @@
-﻿# SochSamajh AI - Medical and Legal Query Router
+# SochSamajh AI - Medical and Legal Query Router
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
@@ -11,31 +11,31 @@ This project is designed as a B.Tech major-project style responsible AI system, 
 
 ## Key Features
 
-- Pre-screening for self-harm and illegal intent before model calls
-- Intent classification across domain and risk level
-- Better handling for medical urgency, legal practical-next-step queries, and ambiguous mixed-domain prompts
-- Dedicated agents for medical, legal, general, and safety responses
-- LangGraph-based routing with critic and formatter stages
-- Structured evaluation on a 300-case dataset with baselines and ablations
-- Fix-driven regression testing on real prompts (including Hinglish/India-specific phrasing)
-- Backend tests, CI, and local dev/evaluation scripts
-- FastAPI backend and React + TypeScript frontend
+- **Pre-screening** for self-harm and illegal intent before model calls
+- **Intent Classification** across domain and risk level
+- **Tuned Domain Handling** for medical urgency, legal practical next steps, and ambiguous queries
+- **Multi-Agent Routing** via LangGraph (Safety, Medical, Legal, and General agents)
+- **Quality Assurance Critic** to enforce critical warning disclaimers
+- **Multi-turn Session Memory**: Session-based short-term conversation memory tracking the last 5 turns using `session_id`
+- **API Rate Limiting**: Built-in protection against API abuse (20 requests/minute) using `slowapi`
+- **Modern FastAPI Lifespan**: Replaced legacy `on_event` handlers with modern async lifespan context managers
+- **Premium Reactive UI**: Overhauled frontend featuring LocalStorage history logging, loading skeletons, expandable document grounding previews, and interactive page resets
+- **Structured Offline Benchmarks** on a 300-case evaluation dataset with baselines, ablations, and judge scoring
+- **CI/CD Integration**: Fully configured GitHub Actions workflow (`eval.yml`) for automated regression testing and pipeline verification
 
-## Recent Improvements (March 2026)
+## Recent Improvements (May 2026)
 
-- Classifier tuning:
-  - stronger medical urgency detection (for example chest tightness, breathing difficulty, stroke-like symptoms)
-  - better legal intent detection for practical process questions (documents, complaint flow, legal notice)
-  - improved unknown/ambiguous routing when users ask for guidance without enough context
-- Response quality tuning:
-  - high-risk medical responses now include immediate action guidance
-  - medium/high legal responses include practical next-step checklists
-  - unknown-domain responses ask focused clarification questions instead of guessing too early
-- RAG stability fix:
-  - ingestion now uses file-relative paths to avoid accidental nested duplicate folders
-  - canonical RAG location remains under [backend/rag](backend/rag)
-- Regression coverage:
-  - added fix-driven test prompts to prevent backsliding in urgency, legal-process, and ambiguity behavior
+- **Session Context Memory**: Prepend and track conversation states locally to make agent completions contextual.
+- **Premium Frontend Overhaul**:
+  - Rehydrates and logs up to 20 past user queries via `localStorage` with a custom sidebar.
+  - Interactive loaders and skeleton views for feedback summaries and health parameters.
+  - Uploaded documents support dynamic expansion and previews up to 1,500 characters.
+  - Added modern "New Query" controls for smooth workflow clearing.
+- **Docker-Compose Persistence**:
+  - Integrated local volumes to persist the SQLite feedback database (`feedback.sqlite3`) across rebuilds.
+  - Upgraded `Dockerfile` with the `build-essential` and `g++` compilation toolchain to natively compile heavy vector DB packages (like `chroma-hnswlib` for ChromaDB) in containerized environments.
+- **Langsmith and Groq Gating**:
+  - Structured environment fallbacks and multi-provider selection tools with automated defaults.
 
 ## System Flow
 
@@ -225,6 +225,28 @@ curl -X POST http://localhost:8000/api/route \
   -H "Content-Type: application/json" \
   -d '{"query": "What is diabetes?"}'
 ```
+
+## Production Deployment
+
+This project is fully ready for production hosting. It supports two primary deployment strategies:
+
+### 1. Cloud PaaS (Render + Vercel)
+This is the recommended approach for automated cloud hosting and automatic CD (Continuous Deployment) from GitHub:
+- **Backend (FastAPI)**: Deploy on **Render** (using the pre-configured [render.yaml](render.yaml) blueprint).
+  - *Data Persistence:* SQLite containers on Render are ephemeral. Mount a **Render Disk** at `/app/data` (size: `1 GiB`) to persist your feedback database (`feedback.sqlite3`) across deployments.
+- **Frontend (Vite/React)**: Deploy on **Vercel** as a static site.
+  - *API Gating:* Configure the environment variable `VITE_API_BASE_URL` in Vercel to point to your backend Render Web Service URL.
+
+### 2. VPS Deployment (Docker Compose)
+Host both the frontend and backend on your own server (e.g., DigitalOcean, AWS EC2, or Linode) using the pre-configured [docker-compose.yml](docker-compose.yml):
+- **Docker Compiling Support:** The backend `Dockerfile` is optimized with compiler suites (`build-essential` and `g++`) to compile vector-indexing wheels like `chroma-hnswlib` for ChromaDB safely on standard Debian-slim images.
+- **Database Mounting:** The SQLite database automatically mounts to a persistent host volume to prevent data loss.
+- **Setup Command:**
+  ```bash
+  docker-compose up -d --build
+  ```
+
+---
 
 ## API Reference
 
