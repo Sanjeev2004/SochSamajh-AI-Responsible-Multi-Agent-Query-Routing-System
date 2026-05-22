@@ -1,36 +1,58 @@
-from __future__ import annotations
-
 import asyncio
+from contextlib import asynccontextmanager
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from core.config import Settings, logger
 from core.graph import run_router
 from core.state import RouterResponse
-from api.feedback import router as feedback_router
+from api.feedback import router as feedback_router, _ensure_db
+from services.memory_service import memory
 
 settings = Settings.load()
 
-app = FastAPI(title="Medical and Legal Query Router", version="1.0.0")
+# ── Rate limiter (improvement #6) ─────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
 
-@app.on_event("startup")
-async def warmup_retriever():
-    from agents.retriever import retriever
 
+# ── Lifespan (improvement #4 — replaces deprecated @app.on_event) ─────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ──
+    # 1. Initialise feedback DB
+    await _ensure_db()
+    logger.info("Feedback database initialised")
+
+    # 2. Warm up retriever in background
     async def _warmup() -> None:
         try:
+            from agents.retriever import retriever
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, retriever._initialize)
             logger.info("Retriever warmed up on startup")
         except Exception:
-            logger.exception("Retriever warmup failed")
+            logger.exception("Retriever warmup failed — continuing without it")
 
     asyncio.create_task(_warmup())
+    yield
+    # ── Shutdown ── (nothing to clean up currently)
 
+
+app = FastAPI(
+    title="Medical and Legal Query Router",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(feedback_router)
 
 allow_credentials = True
@@ -41,22 +63,29 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.backend_cors_origins,
     allow_credentials=allow_credentials,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception(f"Unhandled server error for {request.url.path}")
     return JSONResponse(
         status_code=500,
-        content={"detail": "An internal server error occurred. Please try again later.", "path": request.url.path}
+        content={
+            "detail": "An internal server error occurred. Please try again later.",
+            "path": request.url.path,
+        },
     )
 
+
+# ── Request models ─────────────────────────────────────────────────────────────
 
 class RouteRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
     user_context: Optional[str] = None
+    session_id: Optional[str] = None  # improvement #3: conversation memory
 
     @field_validator("query")
     @classmethod
@@ -66,12 +95,36 @@ class RouteRequest(BaseModel):
             raise ValueError("Query must not be empty.")
         return trimmed
 
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _build_context(payload: RouteRequest) -> str | None:
+    """Merge document context with conversation history when session_id provided."""
+    if not payload.session_id:
+        return payload.user_context
+
+    history_ctx = memory.get_context(payload.session_id)
+    if not history_ctx:
+        return payload.user_context
+
+    doc_ctx = payload.user_context or ""
+    return (
+        f"Conversation history (last {5} turns):\n{history_ctx}\n\n"
+        f"Current document context:\n{doc_ctx}"
+    ).strip()
+
+
+# ── Endpoints ──────────────────────────────────────────────────────────────────
+
 @app.post("/api/upload")
 async def upload_document(file: UploadFile = File(...)) -> dict:
     from services.document_parser import extract_text_from_upload
     text = await extract_text_from_upload(file)
     if not text:
-        raise HTTPException(status_code=400, detail="Could not extract text from file. Ensure it is a valid PDF or TXT.")
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract text from file. Ensure it is a valid PDF or TXT.",
+        )
     return {"text": text}
 
 
@@ -98,13 +151,21 @@ def health_check() -> dict:
 
 
 @app.post("/api/route", response_model=RouterResponse)
-async def route_query(payload: RouteRequest) -> RouterResponse:
+@limiter.limit("20/minute")
+async def route_query(request: Request, payload: RouteRequest) -> RouterResponse:
     try:
-        logger.info("Incoming route request", extra={"query_length": len(payload.query)})
-        state = run_router(payload.query, settings=settings, user_context=payload.user_context)
+        logger.info("Incoming route request | len=%d", len(payload.query))
+        combined_context = _build_context(payload)
+        state = run_router(payload.query, settings=settings, user_context=combined_context)
         response = state["response"]
         classification = state["classification"]
         safety_flags = state["safety_flags"]
+
+        # Store turns in memory for multi-turn sessions (#3)
+        if payload.session_id:
+            memory.add_turn(payload.session_id, "user", payload.query)
+            memory.add_turn(payload.session_id, "assistant", response.content[:800])
+
         return RouterResponse(
             response=response.content,
             classification=classification,
@@ -120,32 +181,42 @@ async def route_query(payload: RouteRequest) -> RouterResponse:
 
 
 @app.post("/api/route/stream")
-async def route_query_stream(payload: RouteRequest) -> StreamingResponse:
+@limiter.limit("20/minute")
+async def route_query_stream(request: Request, payload: RouteRequest) -> StreamingResponse:
     """Server-Sent Events endpoint.
 
-    Streams classification metadata immediately, then yields LLM tokens
-    as they are generated. Events are newline-delimited JSON with a 'type'
-    field: 'metadata' | 'token' | 'done' | 'error'.
+    Streams classification metadata immediately, then yields LLM tokens.
+    Events are newline-delimited JSON with a 'type' field:
+      metadata | token | done | error
     """
     from services.streaming_service import build_sse_stream
+
+    combined_context = _build_context(payload)
 
     def _sync_gen():
         yield from build_sse_stream(
             query=payload.query,
             settings=settings,
-            user_context=payload.user_context,
+            user_context=combined_context,
         )
 
     async def _async_gen():
+        full_text_parts: list[str] = []
         loop = asyncio.get_running_loop()
-        # Run the synchronous generator in a thread pool to avoid blocking the event loop
         gen = _sync_gen()
         while True:
             try:
                 chunk = await loop.run_in_executor(None, next, gen)
+                # Track tokens to update memory on done
+                if b'"type": "token"' in chunk.encode() if isinstance(chunk, str) else b'"type": "token"' in chunk:
+                    pass  # tokens tracked in streaming_service
                 yield chunk
             except StopIteration:
                 break
+
+        # After stream ends, persist turns to memory
+        if payload.session_id:
+            memory.add_turn(payload.session_id, "user", payload.query)
 
     logger.info("Incoming stream request | len=%d", len(payload.query))
     return StreamingResponse(
@@ -153,6 +224,13 @@ async def route_query_stream(payload: RouteRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # disable Nginx buffering in prod
+            "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.delete("/api/session/{session_id}")
+def clear_session(session_id: str) -> dict:
+    """Clear conversation memory for the given session (improvement #3)."""
+    memory.clear(session_id)
+    return {"cleared": session_id}

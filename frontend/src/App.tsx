@@ -5,7 +5,8 @@ import {
     CheckCircle,
     MessageSquareWarning,
     ThumbsDown,
-    ThumbsUp
+    ThumbsUp,
+    RotateCcw
 } from "lucide-react";
 import { getFeedbackSummary, getHealth, routeQueryStream, sendFeedback } from "./hooks/useApi";
 import { FeedbackSummary, HealthResponse, HistoryItem, RouterResponse } from "./types";
@@ -19,7 +20,22 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [currentResult, setCurrentResult] = useState<RouterResponse | null>(null);
-    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [history, setHistory] = useState<HistoryItem[]>(() => {
+        try {
+            const saved = localStorage.getItem("sochsamajh_history");
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("sochsamajh_history", JSON.stringify(history.slice(0, 20)));
+        } catch {
+            // Silently fail if quota exceeded
+        }
+    }, [history]);
     const [feedbackSent, setFeedbackSent] = useState(false);
     const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
     const streamAbortRef = useRef<AbortController | null>(null);
@@ -58,6 +74,15 @@ export default function App() {
             clearInterval(interval);
         };
     }, []);
+
+    function handleNewQuery() {
+        setCurrentResult(null);
+        setStreamingText(null);
+        setError(null);
+        setFeedbackSent(false);
+        streamAbortRef.current?.abort();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
     function handleSubmit(query: string, userContext: string | null, fileName: string | null) {
         // Cancel any in-flight stream
@@ -168,14 +193,22 @@ export default function App() {
                                     Backend
                                 </p>
                                 <div className="mt-2 flex items-center gap-2">
-                                    <span
-                                        className={`h-2.5 w-2.5 rounded-full ${
-                                            health?.status === "ok" ? "bg-emerald-400 shadow-lg shadow-emerald-400/40" : "bg-amber-400"
-                                        }`}
-                                    />
-                                    <p className="text-sm font-medium text-stone-100">
-                                        {health?.status === "ok" ? "System ready" : "Connection unstable"}
-                                    </p>
+                                    {health === null ? (
+                                        <div className="flex flex-col gap-2 w-full pt-1">
+                                            <div className="h-3 w-16 animate-pulse rounded-full bg-white/10" />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span
+                                                className={`h-2.5 w-2.5 rounded-full ${
+                                                    health.status === "ok" ? "bg-emerald-400 shadow-lg shadow-emerald-400/40" : "bg-amber-400"
+                                                }`}
+                                            />
+                                            <p className="text-sm font-medium text-stone-100">
+                                                {health.status === "ok" ? "System ready" : "Connection unstable"}
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
@@ -250,6 +283,16 @@ export default function App() {
                                         </div>
                                     )}
                                 </div>
+
+                                <div className="flex justify-center pt-2">
+                                    <button
+                                        onClick={handleNewQuery}
+                                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm text-stone-300 transition hover:border-teal-300/30 hover:bg-teal-300/10 hover:text-teal-100"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                        New query
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -271,37 +314,56 @@ export default function App() {
                     </section>
 
                     <aside className="space-y-6">
-                        {feedbackSummary && (
-                            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
-                                <div className="mb-4 flex items-center gap-2">
-                                    <MessageSquareWarning className="h-4 w-4 text-amber-300" />
-                                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-200">
-                                        Feedback queue
-                                    </h2>
+                        <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+                            <div className="mb-4 flex items-center gap-2">
+                                <MessageSquareWarning className="h-4 w-4 text-amber-300" />
+                                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-200">
+                                    Feedback queue
+                                </h2>
+                            </div>
+                            
+                            {feedbackSummary === null ? (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-2xl border border-white/8 bg-black/15 p-4 space-y-2">
+                                            <div className="h-2 w-10 animate-pulse rounded bg-white/10" />
+                                            <div className="h-6 w-8 animate-pulse rounded bg-white/10" />
+                                        </div>
+                                        <div className="rounded-2xl border border-white/8 bg-black/15 p-4 space-y-2">
+                                            <div className="h-2 w-16 animate-pulse rounded bg-white/10" />
+                                            <div className="h-6 w-8 animate-pulse rounded bg-white/10" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                        <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Total</p>
-                                        <p className="mt-2 text-2xl font-semibold text-stone-100">{feedbackSummary.total}</p>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                            <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Total</p>
+                                            <p className="mt-2 text-2xl font-semibold text-stone-100">{feedbackSummary.total}</p>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                                            <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Needs review</p>
+                                            <p className="mt-2 text-2xl font-semibold text-amber-100">
+                                                {feedbackSummary.negative_feedback_queue.length}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                        <p className="text-[11px] uppercase tracking-[0.18em] text-stone-500">Needs review</p>
-                                        <p className="mt-2 text-2xl font-semibold text-amber-100">
-                                            {feedbackSummary.negative_feedback_queue.length}
-                                        </p>
-                                    </div>
-                                </div>
-                                {feedbackSummary.negative_feedback_queue.length > 0 && (
-                                    <div className="mt-3 space-y-2">
-                                        {feedbackSummary.negative_feedback_queue.slice(0, 3).map((item) => (
-                                            <div key={`${item.request_id}-${item.timestamp}`} className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-3">
-                                                <p className="line-clamp-2 text-xs leading-5 text-amber-50/90">{item.query_text}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        )}
+                                    {feedbackSummary.negative_feedback_queue.length > 0 && (
+                                        <div className="mt-3 space-y-2">
+                                            {feedbackSummary.negative_feedback_queue.slice(0, 3).map((item) => (
+                                                <div key={`${item.request_id}-${item.timestamp}`} className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-3">
+                                                    <p className="line-clamp-2 text-xs leading-5 text-amber-50/90">{item.query_text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </section>
 
                         <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
                             <div className="mb-4 flex items-center gap-2">

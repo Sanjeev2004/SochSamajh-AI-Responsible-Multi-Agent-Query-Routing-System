@@ -35,10 +35,6 @@ async def _ensure_db() -> None:
         await db.commit()
 
 
-@router.on_event("startup")
-async def startup_event():
-    await _ensure_db()
-
 
 class FeedbackRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)

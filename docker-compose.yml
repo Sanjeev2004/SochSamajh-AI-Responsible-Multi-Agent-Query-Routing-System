@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - feedback_data:/app/data
 
   frontend:
     build: ./frontend
@@ -20,3 +21,7 @@ services:
       - ./frontend:/app
     depends_on:
       - backend
+
+volumes:
+  feedback_data:
+    driver: local

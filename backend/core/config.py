@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Any
 
@@ -36,6 +36,17 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @field_validator("enable_llm", "enable_retriever", "enable_semantic_router", mode="before")
+    @classmethod
+    def parse_boolish_env_values(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "t", "yes", "y", "on"}:
+                return True
+            if normalized in {"0", "false", "f", "no", "n", "off", "falsey", "falsy"}:
+                return False
+        return value
 
     @model_validator(mode="after")
     def setup_provider_and_cors(self) -> Settings:

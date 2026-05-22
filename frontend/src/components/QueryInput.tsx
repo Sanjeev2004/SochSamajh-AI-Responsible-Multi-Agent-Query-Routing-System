@@ -25,6 +25,7 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
     const [uploadedContext, setUploadedContext] = useState<string | null>(null);
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [previewExpanded, setPreviewExpanded] = useState(false);
 
     function handleSubmit() {
         if (!value.trim()) return;
@@ -62,6 +63,7 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
         setUploadedContext(null);
         setUploadedFileName(null);
         setUploadError(null);
+        setPreviewExpanded(false);
     }
 
     function handleKeyDown(event: React.KeyboardEvent) {
@@ -142,14 +144,22 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
                                 <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
-                        <div className="max-h-32 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-3">
+                        <div className={`overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-3 transition-all ${previewExpanded ? "max-h-64" : "max-h-32"}`}>
                             <p className="text-[11px] uppercase tracking-[0.15em] text-stone-500 mb-1">Preview</p>
-                            <p className="text-xs leading-5 text-stone-300 whitespace-pre-wrap">
-                                {uploadedContext.slice(0, 500)}
-                                {uploadedContext.length > 500 && (
-                                    <span className="text-stone-500"> …({uploadedContext.length - 500} more characters)</span>
+                            <p className="text-xs leading-5 text-stone-300 whitespace-pre-wrap break-words">
+                                {previewExpanded ? uploadedContext : uploadedContext.slice(0, 1500)}
+                                {uploadedContext.length > 1500 && !previewExpanded && (
+                                    <span className="text-stone-500"> …({(uploadedContext.length - 1500).toLocaleString()} more characters)</span>
                                 )}
                             </p>
+                            {uploadedContext.length > 1500 && (
+                                <button
+                                    onClick={() => setPreviewExpanded(prev => !prev)}
+                                    className="mt-2 text-[11px] text-teal-300 hover:text-teal-100 transition"
+                                >
+                                    {previewExpanded ? "Show less" : `Show full text (${uploadedContext.length.toLocaleString()} chars)`}
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
