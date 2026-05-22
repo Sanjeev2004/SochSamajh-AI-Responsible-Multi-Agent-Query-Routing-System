@@ -12,11 +12,6 @@ from typing import Iterable
 from .keywords import NEGATION_PREFIXES, TYPO_CORRECTIONS, VAGUE_QUERY_TERMS
 
 
-# ── LLM fallback confidence threshold ─────────────────────────────────────────
-# Queries with confidence below this value are escalated to the LLM semantic
-# router. Exposed as a constant so it can be tuned without touching logic.
-LLM_FALLBACK_CONFIDENCE_THRESHOLD: float = 0.65
-
 
 def correct_typos(text: str) -> str:
     """Lightweight token-level typo correction to improve keyword recall."""

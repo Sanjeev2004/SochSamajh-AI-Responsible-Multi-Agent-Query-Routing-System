@@ -21,11 +21,10 @@ from .keywords import (
     HIGH_RISK_KEYWORDS, MEDIUM_RISK_KEYWORDS,
     LEGAL_REMEDY_TERMS, LEGAL_PRACTICAL_STEP_TERMS,
     URGENT_INTENT_TERMS, AMBIGUOUS_CROSS_DOMAIN_TERMS,
-    FINANCIAL_KEYWORDS, MEDICAL_HINTS, LEGAL_HINTS,
+    MEDICAL_HINTS, LEGAL_HINTS,
     SELF_HARM_KEYWORDS, ILLEGAL_KEYWORDS,
 )
 from .scorer import (
-    LLM_FALLBACK_CONFIDENCE_THRESHOLD,
     correct_typos, contains_any, score_matches,
     weighted_score, matched_terms, is_vague_query, sigmoid_confidence,
 )
@@ -74,7 +73,6 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
     legal_weighted = weighted_score(query_lower, LEGAL_WEIGHTED_TERMS)
     urgent_intent = contains_any(query_lower, URGENT_INTENT_TERMS)
     has_legal_remedy_intent = contains_any(query_lower, LEGAL_REMEDY_TERMS)
-    has_financial = contains_any(query_lower, FINANCIAL_KEYWORDS)
 
     if contains_any(query_lower, LEGAL_PRACTICAL_STEP_TERMS):
         legal_weighted += 2
@@ -203,12 +201,8 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         explanation_parts.append(
             "The router avoided over-confident routing and asks clarification instead."
         )
-    elif domain in {"medical", "legal"}:
+    if domain in {"medical", "legal"}:
         explanation_parts.append(f"The strongest evidence points to the {domain} route.")
-    if has_financial:
-        explanation_parts.append(
-            "Detected financial-related terms; a financial agent could refine this further."
-        )
 
     result = ClassificationOutput(
         domain=domain,
@@ -227,7 +221,7 @@ def classify_intent(query: str, settings: Settings) -> ClassificationOutput:
         logger.warning("Possible misclassification: heuristic suggests medical/legal")
 
     # Step 8: LLM cascade — escalate uncertain results to semantic router
-    if result.domain == Domain.UNKNOWN or result.confidence < LLM_FALLBACK_CONFIDENCE_THRESHOLD:
+    if result.domain == Domain.UNKNOWN or result.confidence < settings.llm_fallback_confidence_threshold:
         logger.info(
             "Cascading to LLM semantic router (confidence=%.2f, domain=%s)",
             result.confidence, result.domain,

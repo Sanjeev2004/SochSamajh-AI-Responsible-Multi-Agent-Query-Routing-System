@@ -209,14 +209,6 @@ AMBIGUOUS_CROSS_DOMAIN_TERMS = frozenset([
     "doctor or lawyer", "lawyer or doctor",
 ])
 
-# ── Financial signals (reserved for future financial agent) ───────────────────
-# TODO: Add a dedicated FinancialAgent routing branch when this is implemented.
-FINANCIAL_KEYWORDS = frozenset([
-    "loan", "emi", "credit card", "bank fraud", "upi fraud",
-    "insurance claim", "mutual fund", "tax return", "itr",
-    "investment", "stock market", "demat", "sebi",
-])
-
 # ── Typo corrections ───────────────────────────────────────────────────────────
 
 TYPO_CORRECTIONS: dict[str, str] = {

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     enable_retriever: bool = Field(default=False, alias="ENABLE_RETRIEVER")
     enable_semantic_router: bool = Field(default=False, alias="ENABLE_SEMANTIC_ROUTER")
     
+    llm_fallback_confidence_threshold: float = Field(default=0.60, alias="LLM_FALLBACK_CONFIDENCE_THRESHOLD")
+    
     llm_provider: str = Field(default="openai", alias="LLM_PROVIDER")
     backend_cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
