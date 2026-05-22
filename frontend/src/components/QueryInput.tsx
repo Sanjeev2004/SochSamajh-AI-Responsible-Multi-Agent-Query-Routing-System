@@ -73,27 +73,27 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 className="mt-2 font-['Iowan_Old_Style','Palatino_Linotype','Book_Antiqua',serif] text-3xl text-stone-50">
-                        Describe the situation in plain language.
+                    <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white drop-shadow-sm">
+                        Describe your situation.
                     </h2>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-stone-300">
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[11px] uppercase tracking-widest text-stone-400 backdrop-blur-md">
                     Ctrl/Cmd + Enter to submit
                 </div>
             </div>
 
             {/* ── Step 1: Document Upload (separate from query) ── */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-400">
-                    <FileText className="h-3.5 w-3.5 text-cyan-300" />
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.02] backdrop-blur-md p-5 transition-all duration-300 hover:bg-white/[0.04]">
+                <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-400">
+                    <FileText className="h-3.5 w-3.5" />
                     Document context (optional)
                 </div>
 
                 {uploadStatus === "idle" && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -103,12 +103,12 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
                         />
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/20 bg-white/5 px-4 py-2.5 text-xs text-stone-300 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-cyan-100"
+                            className="group inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 px-5 py-3 text-sm font-medium text-stone-300 transition-all hover:border-violet-400/50 hover:bg-violet-400/10 hover:text-violet-100 hover:shadow-glow-violet"
                         >
-                            <Paperclip className="h-3.5 w-3.5" />
-                            Upload a PDF or TXT for context
+                            <Paperclip className="h-4 w-4 transition-transform group-hover:scale-110" />
+                            Upload PDF or TXT
                         </button>
-                        <p className="text-[11px] text-stone-500">Upload first, then ask your question below.</p>
+                        <p className="text-xs text-stone-500">Upload medical reports or legal contracts for deep context.</p>
                     </div>
                 )}
 
@@ -186,17 +186,20 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
 
             {/* ── Step 2: Query Input ── */}
             <div
-                className={`rounded-[1.75rem] border p-4 transition duration-300 sm:p-5 ${
+                className={`relative overflow-hidden rounded-[2rem] border transition-all duration-500 sm:p-6 p-4 ${
                     focused
-                        ? "border-teal-400/35 bg-teal-400/10 shadow-[0_0_0_1px_rgba(94,234,212,0.18)]"
-                        : "border-white/10 bg-black/15"
-                }`}
+                        ? "border-teal-400/40 bg-teal-400/[0.03] shadow-[0_0_30px_-5px_rgba(45,212,191,0.15)]"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.03]"
+                } backdrop-blur-xl`}
             >
-                <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-400">
-                    <MessageSquareQuote className="h-3.5 w-3.5 text-teal-300" />
+                {/* Subtle animated gradient background when focused */}
+                <div className={`absolute inset-0 -z-10 bg-gradient-to-br from-teal-400/5 via-violet-400/5 to-transparent transition-opacity duration-700 ${focused ? "opacity-100" : "opacity-0"}`} />
+
+                <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-400">
+                    <MessageSquareQuote className="h-3.5 w-3.5" />
                     Medical or legal question
                     {uploadedContext && (
-                        <span className="ml-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[10px] text-emerald-200">
+                        <span className="ml-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-[10px] text-emerald-300">
                             + document context loaded
                         </span>
                     )}
@@ -236,22 +239,22 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
                     <button
                         onClick={handleSubmit}
                         disabled={disabled || !value.trim()}
-                        className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                        className={`group inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-display text-sm font-semibold tracking-wide transition-all duration-300 ${
                             disabled || !value.trim()
                                 ? "cursor-not-allowed border border-white/10 bg-white/5 text-stone-500"
-                                : "border border-teal-300/40 bg-gradient-to-r from-teal-300 to-amber-300 text-slate-950 shadow-lg shadow-teal-500/20 hover:-translate-y-0.5"
+                                : "bg-gradient-to-r from-teal-400 to-violet-500 text-white shadow-lg shadow-teal-500/25 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/30 hover:brightness-110 active:scale-95"
                         }`}
                     >
-                        <WandSparkles className="h-4 w-4" />
+                        <WandSparkles className={`h-4 w-4 ${disabled || !value.trim() ? "" : "animate-pulse"}`} />
                         Analyze query
-                        <ArrowUpRight className="h-4 w-4" />
+                        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </button>
                 </div>
             </div>
 
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-400">
-                    <WandSparkles className="h-3.5 w-3.5 text-amber-300" />
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
+                    <WandSparkles className="h-3.5 w-3.5 text-violet-400" />
                     Try a prompt
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -259,7 +262,7 @@ export function QueryInput({ onSubmit, disabled }: QueryInputProps) {
                         <button
                             key={prompt}
                             onClick={() => setValue(prompt)}
-                            className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-sm leading-6 text-stone-300 transition hover:border-amber-300/30 hover:bg-amber-300/10 hover:text-stone-100"
+                            className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm leading-6 text-stone-300 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/40 hover:bg-violet-400/10 hover:text-white hover:shadow-lg hover:shadow-violet-500/10"
                         >
                             {prompt}
                         </button>
