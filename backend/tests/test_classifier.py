@@ -52,3 +52,42 @@ def test_medical_legal_overlap_prefers_legal_when_malpractice_is_present() -> No
     result = classify_intent("Can I sue a hospital for malpractice after a surgery complication?", SETTINGS)
     assert result.domain == "legal"
     assert result.risk_level in {"medium", "high"}
+
+
+def test_llm_fallback_alternative_domains() -> None:
+    from unittest.mock import MagicMock, patch
+    from agents.classifier.llm_fallback import llm_classify
+    from core.state import ClassificationOutput, Domain
+
+    base_result = ClassificationOutput(
+        domain=Domain.UNKNOWN,
+        risk_level="low",
+        needs_disclaimer=False,
+        self_harm=False,
+        illegal_request=False,
+        reasoning="Heuristic unknown",
+        confidence=0.35,
+        triggered_terms=[],
+        alternative_domains={"unknown": 1.0, "general": 0.5, "medical": 0.0, "legal": 0.0},
+    )
+
+    dummy_settings = MagicMock()
+    dummy_settings.enable_llm = True
+    dummy_settings.openai_api_key = "mock-key"
+
+    mock_chain = MagicMock()
+    mock_chain.invoke.return_value = {
+        "domain": "medical",
+        "risk_level": "medium",
+        "reasoning": "Mocked medical detection",
+        "confidence": 0.85,
+    }
+
+    with patch("agents.classifier.llm_fallback._get_llm_chain", return_value=mock_chain):
+        res = llm_classify("a dog bit me on the leg", dummy_settings, base_result)
+        assert res.domain == "medical"
+        assert res.alternative_domains["medical"] == 1.0
+        assert res.alternative_domains["legal"] == 0.0
+        assert res.alternative_domains["general"] == 0.0
+        assert res.alternative_domains["unknown"] == 0.0
+

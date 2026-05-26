@@ -115,7 +115,12 @@ def llm_classify(
             reasoning=f"LLM Fallback: {res['reasoning']}",
             confidence=res["confidence"],
             triggered_terms=base_result.triggered_terms,
-            alternative_domains=base_result.alternative_domains,
+            alternative_domains={
+                "medical": 1.0 if res["domain"] in (Domain.MEDICAL, "medical") else 0.0,
+                "legal": 1.0 if res["domain"] in (Domain.LEGAL, "legal") else 0.0,
+                "general": 1.0 if res["domain"] in (Domain.GENERAL, "general") else 0.0,
+                "unknown": 1.0 if res["domain"] in (Domain.UNKNOWN, "unknown") else 0.0,
+            },
             explanation=(
                 f"Heuristic confidence was low ({base_result.confidence:.2f}), "
                 "so semantic LLM routing was used."
