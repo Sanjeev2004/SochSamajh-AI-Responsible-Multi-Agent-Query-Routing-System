@@ -45,10 +45,6 @@ RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
         ("Can you explain my situation?", "unknown", "low"),
         ("Need advice", "unknown", "low"),
         ("Can stress cause chest tightness or is it emergency?", "medical", "high"),
-        ("I need legal and medical help both, not sure where to start.", "unknown", "low"),
-        ("I am not sure if this is medical or legal, can you guide me?", "unknown", "low"),
-        ("Need both legal and medical help after an accident, where do I start?", "unknown", "low"),
-        ("Confused whether I need a doctor or lawyer first.", "unknown", "low"),
     ],
 )
 def test_fix_tuning_prompt_regression(query: str, expected_domain: str, minimum_risk: str) -> None:

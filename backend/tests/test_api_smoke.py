@@ -12,7 +12,7 @@ def test_health_route() -> None:
 
 
 def test_route_endpoint_returns_router_response(monkeypatch) -> None:
-    def fake_run_router(query: str, settings=None):
+    def fake_run_router(query: str, settings=None, **kwargs):
         return {
             "response": AgentResponse(
                 content="Test response",
@@ -33,7 +33,13 @@ def test_route_endpoint_returns_router_response(monkeypatch) -> None:
 
     monkeypatch.setattr(api_main, "run_router", fake_run_router)
 
-    payload = asyncio.run(api_main.route_query(api_main.RouteRequest(query="What is asthma?"))).model_dump()
+    import httpx
+    async def _post_json(path: str, payload: dict) -> httpx.Response:
+        transport = httpx.ASGITransport(app=api_main.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(path, json=payload)
+
+    payload = asyncio.run(_post_json("/api/route", {"query": "What is asthma?"})).json()
 
     assert payload["response"] == "Test response"
     assert payload["classification"]["domain"] == "medical"

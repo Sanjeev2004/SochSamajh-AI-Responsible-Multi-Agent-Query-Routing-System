@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import replace
-
 import agents.general as general_agent
 from core.config import Settings
 from core.state import ClassificationOutput
 
 
-SETTINGS = replace(Settings.load(), enable_llm=True, enable_retriever=False)
+SETTINGS = Settings.load().model_copy(update={"enable_llm": True, "enable_retriever": False})
 
 
 def _classification() -> ClassificationOutput:

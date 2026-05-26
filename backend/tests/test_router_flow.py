@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
-
 import agents.general as general_agent
 import agents.legal as legal_agent
 import agents.medical as medical_agent
@@ -9,7 +7,7 @@ from core.config import Settings
 from core.graph import run_router
 
 
-SETTINGS = replace(Settings.load(), enable_retriever=False)
+SETTINGS = Settings.load().model_copy(update={"enable_retriever": False})
 
 
 def test_router_flow_formats_legal_next_steps(monkeypatch) -> None:

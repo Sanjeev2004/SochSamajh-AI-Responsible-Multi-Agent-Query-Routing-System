@@ -20,7 +20,7 @@ def test_feedback_endpoint_persists_record(monkeypatch, tmp_path: Path) -> None:
     temp_db = tmp_path / "feedback.sqlite3"
     monkeypatch.setattr(feedback_api, "DATA_DIR", tmp_path)
     monkeypatch.setattr(feedback_api, "DB_PATH", temp_db)
-    feedback_api._ensure_db()
+    asyncio.run(feedback_api._ensure_db())
 
     response = asyncio.run(
         _post_json(
@@ -54,7 +54,7 @@ def test_feedback_endpoint_rejects_invalid_rating(monkeypatch, tmp_path: Path) -
     temp_db = tmp_path / "feedback.sqlite3"
     monkeypatch.setattr(feedback_api, "DATA_DIR", tmp_path)
     monkeypatch.setattr(feedback_api, "DB_PATH", temp_db)
-    feedback_api._ensure_db()
+    asyncio.run(feedback_api._ensure_db())
 
     response = asyncio.run(
         _post_json(

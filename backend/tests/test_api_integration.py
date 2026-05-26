@@ -34,7 +34,7 @@ def test_route_endpoint_rejects_blank_query() -> None:
 
 
 def test_route_endpoint_returns_safety_flags(monkeypatch) -> None:
-    def fake_run_router(query: str, settings=None):
+    def fake_run_router(query: str, settings=None, **kwargs):
         return {
             "response": AgentResponse(
                 content="Please contact emergency services right away.",
@@ -66,7 +66,7 @@ def test_route_endpoint_returns_safety_flags(monkeypatch) -> None:
 
 
 def test_route_endpoint_returns_server_error_when_router_fails(monkeypatch) -> None:
-    def fake_run_router(query: str, settings=None):
+    def fake_run_router(query: str, settings=None, **kwargs):
         raise RuntimeError("router exploded")
 
     monkeypatch.setattr(api_main, "run_router", fake_run_router)
