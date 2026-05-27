@@ -5,6 +5,8 @@
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688)
 
+🚀 **Live Demo:** [https://soch-samajh-ai-responsible-multi-ag.vercel.app/](https://soch-samajh-ai-responsible-multi-ag.vercel.app/)
+
 A safety-first multi-agent system that routes medical, legal, and general queries to specialized agents with risk-aware handling, domain-specific disclaimers, and measurable evaluation.
 
 This project is designed as a B.Tech major-project style responsible AI system, not just a chatbot UI. It combines multi-agent routing, safety checks, structured evaluation, testing, CI, and deployable full-stack engineering.
