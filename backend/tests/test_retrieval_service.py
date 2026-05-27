@@ -16,6 +16,7 @@ def test_retrieval_service_respects_disabled_setting(monkeypatch) -> None:
         return "should not be used"
 
     monkeypatch.setattr(retrieval_service, "retrieve_context", fake_retrieve_context)
+    monkeypatch.setattr(retrieval_service, "retrieve_sources", lambda query, domain: [])
     disabled_settings = SETTINGS.model_copy(update={"enable_retriever": False})
 
     assert retrieval_service.get_retrieved_context("test query", "medical", disabled_settings) == ""
@@ -24,6 +25,7 @@ def test_retrieval_service_respects_disabled_setting(monkeypatch) -> None:
 
 def test_retrieval_service_uses_retriever_when_enabled(monkeypatch) -> None:
     monkeypatch.setattr(retrieval_service, "retrieve_context", lambda query, domain: f"{domain}:{query}")
+    monkeypatch.setattr(retrieval_service, "retrieve_sources", lambda query, domain: [])
     enabled_settings = SETTINGS.model_copy(update={"enable_retriever": True})
 
     assert retrieval_service.get_retrieved_context("test query", "legal", enabled_settings) == "legal:test query"
