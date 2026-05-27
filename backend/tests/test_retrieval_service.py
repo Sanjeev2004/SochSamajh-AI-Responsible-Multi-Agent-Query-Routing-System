@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
-
 from agents.retriever import Retriever
 from core.config import Settings
 from services import retrieval_service
@@ -18,7 +16,7 @@ def test_retrieval_service_respects_disabled_setting(monkeypatch) -> None:
         return "should not be used"
 
     monkeypatch.setattr(retrieval_service, "retrieve_context", fake_retrieve_context)
-    disabled_settings = replace(SETTINGS, enable_retriever=False)
+    disabled_settings = SETTINGS.model_copy(update={"enable_retriever": False})
 
     assert retrieval_service.get_retrieved_context("test query", "medical", disabled_settings) == ""
     assert called["value"] is False
@@ -26,7 +24,7 @@ def test_retrieval_service_respects_disabled_setting(monkeypatch) -> None:
 
 def test_retrieval_service_uses_retriever_when_enabled(monkeypatch) -> None:
     monkeypatch.setattr(retrieval_service, "retrieve_context", lambda query, domain: f"{domain}:{query}")
-    enabled_settings = replace(SETTINGS, enable_retriever=True)
+    enabled_settings = SETTINGS.model_copy(update={"enable_retriever": True})
 
     assert retrieval_service.get_retrieved_context("test query", "legal", enabled_settings) == "legal:test query"
 
