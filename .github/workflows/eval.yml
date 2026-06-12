@@ -1,41 +1,41 @@
-name: Evaluation & Tests
+name: Evaluation & Regression Tests
 
 on:
   push:
-    branches: [main, master, "codex/**"]
+    branches:
+      - main
+      - master
+      - "codex/**"
   pull_request:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
 jobs:
   test:
-    name: Run Router Tests
+    name: Router Regression Tests
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
 
-      - name: Run tests
+      - name: Run router regression tests
         env:
           ENABLE_LLM: "false"
           ENABLE_RETRIEVER: "false"
