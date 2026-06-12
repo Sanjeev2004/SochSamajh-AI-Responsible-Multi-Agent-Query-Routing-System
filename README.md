@@ -143,19 +143,6 @@ The value here is that SochSamajh AI is **more controlled, auditable, and measur
 | Evaluation | Often informal/manual | Dataset, baselines, ablations, judge, regression tests |
 | Engineering ownership | External product | Your own deployable, inspectable system |
 
-### Honest Viva Framing
-
-✅ Good framing:
-
-- This project is better for a **responsible domain-routing use case**
-- This project is easier to **measure, audit, and demonstrate**
-- This project shows **engineering + evaluation**, not only prompting
-
-❌ Avoid saying:
-
-- It is smarter than ChatGPT in general
-- It replaces doctors, lawyers, or emergency services
-- It is a final medical/legal decision system
 
 ---
 
