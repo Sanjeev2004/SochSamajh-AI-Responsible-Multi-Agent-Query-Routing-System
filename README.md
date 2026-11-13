@@ -1,4 +1,6 @@
-# SochSamajh AI — Medical and Legal Query Router
+# SochSamajh AI — Responsible Multi-Agent Query Routing System
+
+> **Suggested GitHub description:** Safety-first FastAPI + LangGraph router that classifies medical/legal/general queries by domain and risk, with RAG grounding, explainable routing, and a 300-case evaluation suite.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/ci.yml/badge.svg)](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/ci.yml)
@@ -8,7 +10,8 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
 
-🚀 **Live Demo:** [https://soch-samajh-ai-responsible-multi-ag.vercel.app/](https://soch-samajh-ai-responsible-multi-ag.vercel.app/)
+🚀 **Live Demo:** [https://soch-samajh-ai-responsible-multi-ag.vercel.app/](https://soch-samajh-ai-responsible-multi-ag.vercel.app/)  
+*(README URL is the source of truth for the public demo link.)*
 
 A safety-first multi-agent system that routes medical, legal, and general queries to specialised agents with risk-aware handling, domain-specific disclaimers, and measurable evaluation.
 
@@ -35,7 +38,14 @@ This project is designed as a B.Tech major-project style responsible AI system �
 
 ---
 
-## Recent Improvements (June 2026)
+## Recent Improvements (November 2026)
+
+- **Risk scoring overhaul**: Separated medical-urgency vs legal-high-risk paths, added escalation when urgent intent + domain evidence align, and reduced false lows on emergency medical phrasing (chest pain, vomiting blood, unresponsiveness, etc.). Added `backend/tests/test_risk_scoring.py` (~40 edge cases).
+- **Hybrid semantic routing**: Wired lazy-loaded `backend/agents/router_semantic.py` into the classifier cascade for mid-confidence / unknown / ambiguous queries, with India/Hinglish domain anchors. Model load failures fall back silently; CI mocks stay offline-friendly.
+- **Real RAG corpora**: Expanded `backend/rag/data/medical_data.txt` and `legal_data.txt` with multi-section educational excerpts (diabetes, dengue, dog bite/rabies, chest-pain triage, pregnancy warnings, migraines; security deposit, FIR, consumer rights, tenancy, IPC overview). Retriever keeps keyword/BM25-like fallback if embeddings/Chroma fail.
+- **Explainability UI**: Response panel now shows “Why this route?”, triggered terms, confidence, pipeline-trace step chips, and alternative-domain scores.
+
+### Earlier (June 2026)
 
 - **Session Context Memory**: Prepend and track conversation states locally to make agent completions contextual.
 - **Streaming SSE Endpoint**: `/api/route/stream` streams classification metadata and then yields LLM tokens as Server-Sent Events.
@@ -182,10 +192,24 @@ Update `backend/.env` with:
 | `OPENAI_MODEL` | OpenAI model to use | `gpt-4o` |
 | `GROQ_MODEL` | Groq model to use | `llama-3.3-70b-versatile` |
 | `ENABLE_LLM` | Set `true` to spend API credits | `false` |
+| `ENABLE_RETRIEVER` | Enable Chroma/keyword RAG grounding | `false` |
+| `ENABLE_SEMANTIC_ROUTER` | Prefer semantic hybrid cascade when configured | `false` |
 | `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` |
 | `LANGSMITH_API_KEY` | LangSmith tracing key | — |
 | `LANGSMITH_PROJECT` | LangSmith project name | `medical-legal-router` |
 | `LANGCHAIN_TRACING_V2` | Enable LangChain tracing | `false` |
+
+### Rebuild ChromaDB after editing RAG text
+
+After changing files under `backend/rag/data/`, rebuild the vector store:
+
+```bash
+cd backend
+python -m rag.ingest
+# or: python rag/ingest.py
+```
+
+This rewrites `backend/rag/chroma_db/`. Set `ENABLE_RETRIEVER=true` for the API to use retrieval. If sentence-transformers/Chroma cannot load, the retriever falls back to an in-process keyword scorer over the same `.txt` files so the pipeline does not crash.
 
 > **Note:** Use `LLM_PROVIDER=groq` with `GROQ_API_KEY` to route calls through Groq's OpenAI-compatible endpoint at no OpenAI cost.
 

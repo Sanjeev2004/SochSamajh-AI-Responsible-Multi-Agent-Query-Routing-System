@@ -1,17 +1,35 @@
-Dr. John Smith, M.D. - Type 2 Diabetes Management
-"Type 2 diabetes is a chronic condition affecting the way the body processes blood sugar (glucose). Symptoms include increased thirst, frequent urination, hunger, fatigue, and blurred vision. Treatment often involves lifestyle changes such as diet and exercise, and potentially medication like Metformin or insulin therapy."
+Educational Health Note - Type 2 Diabetes (Public Educational Summary)
+"Type 2 diabetes is a chronic condition in which the body does not use insulin effectively, leading to elevated blood glucose. Common educational points include increased thirst, frequent urination, hunger, fatigue, blurred vision, and slow-healing cuts. General lifestyle topics often discussed in public health materials include balanced meals, physical activity, weight management, and clinician-guided medication plans such as metformin or insulin when prescribed. This is educational information only, not personal medical advice."
 
-Dr. Emily Chen, M.D. - Migraine and Headaches
-"Migraines are severe headaches often accompanied by nausea, vomiting, and sensitivity to light and sound. Triggers can include stress, certain foods, and hormonal changes. Over-the-counter pain relievers (NSAIDs) can help, but prescription triptans are often needed for severe cases. Rest in a dark, quiet room is recommended."
+Educational Health Note - Diabetes Warning Signs and Foot Care
+"Public education materials often advise people with diabetes to monitor for unusually high or low blood sugar symptoms, persistent fatigue, vision changes, numbness in feet, and wounds that heal slowly. Foot care education commonly includes daily inspection, well-fitting footwear, and prompt clinical review of ulcers or infections. Missing insulin or severe hyperglycemia/hypoglycemia symptoms should be treated as urgent by a qualified clinician or emergency service."
 
-Emergency Triage Reference - Chest Pain and Breathing Difficulty
-"Chest pain with sweating, left arm pain, fainting, shortness of breath, blue lips, confusion, or severe weakness can be a medical emergency. People with these symptoms should seek emergency care immediately and should not drive themselves."
+Educational Health Note - Dengue Fever Warning Signs
+"Dengue is a mosquito-borne viral illness. Educational summaries describe fever, severe body aches, headache, pain behind the eyes, rash, nausea, and weakness. Warning signs highlighted in public health guidance include severe abdominal pain, persistent vomiting, bleeding from gums or nose, blood in vomit or stool, lethargy, restlessness, cold clammy skin, and difficulty breathing. These warning signs need urgent medical evaluation. Prevention education focuses on avoiding mosquito bites and eliminating standing water."
 
-Public Health Note - Dog Bite and Rabies Risk
-"Dog bites should be cleaned with running water and soap, and urgent medical evaluation is important when vaccine status is unknown. Rabies post-exposure prophylaxis is time-sensitive and should be assessed by a healthcare professional."
+Educational Health Note - Dog Bite and Rabies Risk
+"Dog bites and other mammal bites should be washed promptly with soap and running water for several minutes. Educational guidance emphasizes urgent medical assessment when the animal's vaccination status is unknown, the wound is deep, bleeding is significant, or the bite is on the face, hands, or near joints. Rabies post-exposure prophylaxis is time-sensitive and decided by a healthcare professional based on exposure category and local protocols. Tetanus immunization status may also need review. This is general education, not a treatment plan."
 
-Maternal Health Safety Note - Pregnancy Bleeding
-"Bleeding during pregnancy, severe abdominal pain, fainting, fever, or reduced fetal movement should be assessed urgently by a qualified healthcare professional or emergency department."
+Emergency Triage Education - Chest Pain and Breathing Difficulty
+"Chest pain with sweating, pressure, left-arm or jaw discomfort, fainting, shortness of breath, blue lips, confusion, or severe weakness can indicate a medical emergency such as a heart attack or other critical condition. Educational triage messages advise seeking emergency care immediately and not driving oneself when these features are present. Sudden face drooping, arm weakness, or speech difficulty are also emergency education points associated with stroke pathways. This content is for public awareness only."
 
-Infectious Disease Note - Dengue Warning Signs
-"Dengue can cause fever, severe body pain, headache, rash, nausea, and weakness. Warning signs include severe abdominal pain, persistent vomiting, bleeding, lethargy, restlessness, and difficulty breathing; these need urgent medical care."
+Maternal Health Education - Pregnancy Warning Signs
+"Educational maternal-health materials commonly list warning signs that need urgent clinical review: vaginal bleeding, severe abdominal or pelvic pain, severe headache, vision changes, reduced fetal movement, fever, fainting, seizures, sudden swelling of face or hands, and fluid leakage. Any of these should be assessed by a qualified healthcare professional or emergency department. Routine prenatal questions differ from acute warning signs; this note is educational and not personalized obstetric advice."
+
+Educational Health Note - Migraines and Headaches
+"Migraines are recurrent headaches that may include nausea, vomiting, and sensitivity to light or sound. Public education often discusses common triggers such as stress, irregular sleep, dehydration, certain foods, and hormonal changes. Rest in a quiet dark room and clinician-guided pain strategies are frequently mentioned. Sudden 'worst headache of life,' headache with fever and stiff neck, neurological deficits, or headache after head injury are educational red flags for urgent care. Not personalized treatment advice."
+
+Educational Health Note - Heat-Related Illness
+"Heat exhaustion and heat stroke are discussed in public health guidance for hot climates. Educational signs of heat exhaustion can include heavy sweating, weakness, dizziness, nausea, and headache. Heat stroke education emphasizes hot dry or profoundly altered sweating, confusion, fainting, and very high body temperature as emergencies requiring immediate cooling and urgent medical care. Prevention topics include hydration, shade, and avoiding peak sun exposure."
+
+Educational Health Note - Dehydration and Gastrointestinal Illness
+"Educational materials on gastroenteritis and food-related illness often mention vomiting, diarrhea, abdominal cramps, and fever. Dehydration warning education includes reduced urination, dry mouth, dizziness, lethargy, and in children, fewer wet diapers or sunken eyes. Persistent vomiting, bloody stool, high fever, severe pain, or inability to keep fluids down warrants clinical assessment. Oral rehydration concepts are general public-health education, not a prescription."
+
+Educational Health Note - Asthma and Breathing Symptoms
+"Asthma education commonly covers wheezing, cough, chest tightness, and shortness of breath, sometimes triggered by allergens, smoke, exercise, or infections. Public guidance usually stresses having an action plan from a clinician and seeking urgent care for severe breathlessness, inability to speak full sentences, blue lips, or poor response to prescribed reliever medication. This is educational information only."
+
+Educational Health Note - Mental Health Distress (Non-Crisis Overview)
+"Public mental-health education discusses stress, anxiety, low mood, sleep change, and burnout as common experiences that may benefit from supportive care and professional help. If someone expresses intent to die, self-harm plans, or inability to stay safe, crisis resources and emergency services are the appropriate path. Educational content here is not psychotherapy or a diagnosis."
+
+Disclaimer for all medical excerpts
+"These excerpts are synthesized public-education style notes for retrieval grounding. They are not a substitute for diagnosis, emergency triage, or individualized medical advice from a licensed clinician."

@@ -1,17 +1,32 @@
-US Code Title 17 - Copyright Law
-"Copyright protection subsists explicitly in original works of authorship fixed in any tangible medium of expression. This includes literary, musical, dramatic, and choreographic works. The owner of copyright has the exclusive right to reproduce the work, prepare derivative works, and distribute copies."
+Educational Legal Note - Security Deposit and Tenancy Basics (India-oriented overview)
+"In many rental arrangements, a security deposit is held by the landlord against unpaid rent or damage beyond normal wear. Educational consumer guidance often recommends keeping the rent agreement, payment receipts, move-in/move-out photos, inventory lists, and written communication. If a deposit is withheld, common practical steps discussed in legal-literacy materials include a written demand, negotiation, and jurisdiction-specific consumer or rent tribunal remedies. Exact rights depend on local law and the contract. This is general information, not legal advice."
 
-State Contract Law - General Principles
-"A legally binding contract requires an offer, acceptance, and consideration. Consideration is the exchange of something of value between the parties. Contracts can be written or oral, but certain types (like real estate sales) must be in writing to be enforceable under the Statute of Frauds."
+Educational Legal Note - FIR and Police Complaint Process (India overview)
+"An FIR (First Information Report) is commonly described in Indian legal literacy materials as a written record of information about a cognizable offence given to police. Educational notes often say that if police refuse to register an FIR, a person may submit a written complaint to a senior officer, keep acknowledgment copies, and in some situations approach a magistrate or legal-aid service under applicable procedure. Non-cognizable matters may follow a different complaint path. Process and outcomes depend on facts and jurisdiction. Not personalized legal advice."
 
-India Legal Process Note - FIR and Police Complaint
-"If police refuse to register an FIR, a person may keep written records, submit a written complaint to a senior police officer, and consider approaching the appropriate magistrate or legal aid service. Procedure depends on jurisdiction and facts."
+Educational Legal Note - Consumer Rights Basics
+"Consumer-protection education typically covers defective goods, deficient services, unfair trade practices, and misleading advertisements. Useful records highlighted in literacy guides include invoices, warranties, chat/email trails, and a dated timeline of complaints. Many overviews describe a staged path: written grievance to the business, then consumer commission or alternative dispute forums where available. Monetary limits and limitation periods vary. This content is educational only."
 
-Consumer Dispute Note - Security Deposit and Service Complaints
-"For deposit or consumer disputes, useful records include the agreement, payment proof, written communication, photographs, notices, and a dated timeline. Many cases start with a written demand or legal notice before formal complaint filing."
+Educational Legal Note - Tenancy and Rent Agreement Basics
+"Educational tenancy notes often explain that written rent agreements help clarify rent, deposit, duration, maintenance duties, notice periods, and lock-in clauses. Practical literacy tips include reading renewal terms, documenting property condition, and communicating notices in writing. Eviction, unpaid rent, and illegal lockouts are jurisdiction-specific issues that usually require local legal advice. This is general information, not a lease review."
 
-Employment Law Note - Salary and Termination Records
-"For salary, wrongful termination, or workplace disputes, preserve appointment letters, payslips, emails, attendance records, termination letters, and messages. Local labor law, contract terms, and limitation periods affect next steps."
+Educational Legal Note - IPC Overview (Educational, Non-Advisory)
+"The Indian Penal Code (IPC) historically provided a catalogue of criminal offences and punishments; readers should verify the currently applicable criminal code framework in their jurisdiction because statutes can be replaced or amended. Educational overviews group concepts such as offences against the person, property, public order, and documents. Charging decisions, compoundability, and bail are fact-specific and handled by police, prosecutors, and courts. This note is for civic education only and is not criminal-defense advice."
 
-Safety and Legal Aid Note - Domestic Violence or Threats
-"When there is immediate violence or threat, personal safety comes before paperwork. Contact emergency services, a trusted person, shelter, legal aid, or a qualified local lawyer for protection and jurisdiction-specific remedies."
+Educational Legal Note - Employment, Salary, and Termination Records
+"Legal-literacy materials on workplace disputes commonly advise preserving offer letters, appointment terms, payslips, attendance records, emails, resignation/termination letters, and policy handbooks. Topics such as unpaid wages, wrongful termination, harassment, and statutory benefits depend on labour laws, contract terms, and limitation periods. Early written grievances and local labour or legal-aid channels are often discussed as practical next steps. Not individualized employment counsel."
+
+Educational Legal Note - Domestic Violence and Immediate Safety
+"When violence or credible threats are present, public guidance prioritizes personal safety: emergency services, trusted contacts, shelters, and local protection mechanisms before paperwork. Educational legal notes may mention protection orders, police complaints, and support services, but exact remedies are jurisdiction-specific. This system provides general information only and must not replace emergency or lawyer assistance."
+
+Educational Legal Note - Contracts and Basic Elements
+"General contract education describes offer, acceptance, consideration, capacity, and lawful object as common building blocks of enforceable agreements. Some agreements must be in writing under local formalities. Breach remedies discussed in primers include negotiation, notice, damages, or specific performance where available. Cross-border and consumer contracts add further rules. Educational only — not a contract opinion."
+
+Educational Legal Note - Copyright Basics (Public-domain style primer)
+"Copyright literacy materials explain that original expressive works fixed in a tangible medium may receive protection, typically covering reproduction, distribution, and adaptation rights subject to exceptions such as fair dealing/fair use concepts that vary by country. Registration rules and duration differ by jurisdiction. This is a high-level educational summary, not an IP clearance."
+
+Educational Legal Note - Evidence and Document Hygiene for Disputes
+"Across consumer, tenancy, and employment disputes, educational guides repeatedly stress organized evidence: agreements, proofs of payment, timestamps, photographs, medical or police records where relevant, and a neutral timeline. Avoid forging documents, deleting messages, or making threats. Consult a licensed local lawyer for strategy. General information only."
+
+Disclaimer for all legal excerpts
+"These excerpts are synthesized educational notes for retrieval grounding. Laws vary by country, state, and facts. They are not a solicitor-client relationship and not a substitute for advice from a licensed attorney or legal-aid clinic."

@@ -1,4 +1,4 @@
-import { AlertTriangle, FileSearch, FileStack, GitBranch, ShieldAlert, Sparkles, Paperclip } from "lucide-react";
+import { AlertTriangle, FileSearch, FileStack, GitBranch, HelpCircle, ShieldAlert, Sparkles, Paperclip } from "lucide-react";
 import { RouterResponse } from "../types";
 import { SafetyBadge, domainToTone, riskToTone } from "./SafetyBadge";
 
@@ -15,12 +15,24 @@ function routerSummary(result: RouterResponse) {
     return `${domainLabel} query, ${result.classification.risk_level} risk.`;
 }
 
-    export function ResponseDisplay({ result, query, attachedFile, streamingText }: ResponseDisplayProps) {
+function formatStepLabel(step: string): string {
+    return step
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function ResponseDisplay({ result, query, attachedFile, streamingText }: ResponseDisplayProps) {
     const { classification, safety_flags } = result;
     const confidencePercent = Math.round((classification.confidence ?? 0) * 100);
     const trace = result.pipeline_trace ?? [];
     const sources = result.sources ?? [];
     const triggeredTerms = classification.triggered_terms ?? [];
+    const alternatives = Object.entries(classification.alternative_domains ?? {})
+        .sort((a, b) => Number(b[1]) - Number(a[1]));
+    const whyRoute =
+        classification.explanation ||
+        classification.reasoning ||
+        "Routing used keyword and safety heuristics.";
 
     return (
         <div className="space-y-4">
@@ -77,6 +89,49 @@ function routerSummary(result: RouterResponse) {
                     </p>
                 </div>
 
+                {/* Why this route? */}
+                <div className="mt-4 rounded-xl border border-border bg-deep p-4">
+                    <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-stone-500">
+                        <HelpCircle className="h-3.5 w-3.5" />
+                        Why this route?
+                    </div>
+                    <p className="text-sm leading-6 text-stone-300">{whyRoute}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                        <span className="rounded-md border border-border bg-surface px-2 py-1 text-stone-300">
+                            Confidence {confidencePercent}%
+                        </span>
+                        <span className="rounded-md border border-border bg-surface px-2 py-1 capitalize text-stone-300">
+                            {classification.domain}
+                        </span>
+                        <span className="rounded-md border border-border bg-surface px-2 py-1 capitalize text-stone-300">
+                            {classification.risk_level} risk
+                        </span>
+                    </div>
+                    {triggeredTerms.length > 0 && (
+                        <div className="mt-4">
+                            <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-stone-500">
+                                Triggered terms / matched keywords
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {triggeredTerms.map((term) => (
+                                    <span
+                                        key={term}
+                                        className="rounded-md border border-amber-500/20 bg-amber-500/5 px-2 py-1 text-[11px] text-amber-100/90"
+                                    >
+                                        {term}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {classification.reasoning && classification.explanation && (
+                        <p className="mt-3 text-xs leading-5 text-stone-500">
+                            <span className="font-medium text-stone-400">Classifier note:</span>{" "}
+                            {classification.reasoning}
+                        </p>
+                    )}
+                </div>
+
                 <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.7fr)]">
                     <div className="rounded-xl border border-border bg-deep p-4">
                         <div className="flex items-start gap-3">
@@ -84,9 +139,6 @@ function routerSummary(result: RouterResponse) {
                             <div>
                                 <p className="text-sm font-medium text-stone-200">Routing summary</p>
                                 <p className="mt-1 text-xs leading-5 text-stone-400">{routerSummary(result)}</p>
-                                <p className="mt-2 text-xs leading-5 text-stone-500">
-                                    {classification.explanation || classification.reasoning}
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -106,48 +158,52 @@ function routerSummary(result: RouterResponse) {
                     )}
                 </div>
 
-                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     <div className="rounded-xl border border-border bg-deep p-4">
                         <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-stone-500">
                             <GitBranch className="h-3.5 w-3.5" />
-                            Trace
+                            Pipeline trace
                         </div>
-                        <p className="break-words text-xs leading-5 text-stone-400">
-                            {trace.length > 0 ? trace.join(" -> ") : "Trace unavailable"}
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-deep p-4">
-                        <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-stone-500">
-                            <FileSearch className="h-3.5 w-3.5" />
-                            Evidence
-                        </div>
-                        {triggeredTerms.length > 0 ? (
+                        {trace.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
-                                {triggeredTerms.slice(0, 6).map((term) => (
-                                    <span key={term} className="rounded-md border border-border bg-surface px-2 py-1 text-[11px] text-stone-300">
-                                        {term}
+                                {trace.map((step, index) => (
+                                    <span
+                                        key={`${step}-${index}`}
+                                        className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] text-stone-300"
+                                    >
+                                        <span className="text-stone-600">{index + 1}</span>
+                                        {formatStepLabel(step)}
                                     </span>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-xs leading-5 text-stone-500">No specific trigger terms matched.</p>
+                            <p className="text-xs leading-5 text-stone-500">Trace unavailable</p>
                         )}
                     </div>
 
                     <div className="rounded-xl border border-border bg-deep p-4">
                         <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-stone-500">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            Scores
+                            <FileSearch className="h-3.5 w-3.5" />
+                            Alternative domains
                         </div>
-                        <div className="space-y-2">
-                            {Object.entries(classification.alternative_domains ?? {}).map(([domain, score]) => (
-                                <div key={domain} className="flex items-center justify-between gap-3 text-xs text-stone-400">
-                                    <span className="capitalize">{domain}</span>
-                                    <span>{Math.round(Number(score) * 100)}%</span>
-                                </div>
-                            ))}
-                        </div>
+                        {alternatives.length > 0 ? (
+                            <div className="space-y-2">
+                                {alternatives.map(([domain, score]) => (
+                                    <div key={domain} className="flex items-center gap-3 text-xs text-stone-400">
+                                        <span className="w-20 capitalize text-stone-300">{domain}</span>
+                                        <div className="h-1.5 flex-1 overflow-hidden rounded bg-surface">
+                                            <div
+                                                className="h-full rounded bg-stone-400/70"
+                                                style={{ width: `${Math.min(100, Math.round(Number(score) * 100))}%` }}
+                                            />
+                                        </div>
+                                        <span className="w-10 text-right">{Math.round(Number(score) * 100)}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs leading-5 text-stone-500">No alternative domain scores.</p>
+                        )}
                     </div>
                 </div>
             </div>
