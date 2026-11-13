@@ -130,10 +130,17 @@ class Retriever:
         try:
             self.client = chromadb.PersistentClient(path=str(CHROMA_PATH))
             self.collection = self.client.get_or_create_collection(name="knowledge_base")
-            self.model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+            try:
+                self.model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+            except Exception:
+                # Optional network/cache load; if this fails, keyword fallback remains.
+                self.model = SentenceTransformer("all-MiniLM-L6-v2")
             self._ready = True
         except BaseException as exc:
-            logger.warning("Retriever initialization failed: %s", exc)
+            logger.warning(
+                "Retriever initialization failed (%s). Using keyword/BM25-like fallback.",
+                exc,
+            )
 
     def get_relevant_context(self, query: str, domain: str | None = None, top_k: int = 2) -> str:
         return self._format_context(self.get_relevant_sources(query=query, domain=domain, top_k=top_k))
