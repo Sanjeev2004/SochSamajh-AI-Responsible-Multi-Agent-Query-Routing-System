@@ -30,17 +30,20 @@ async def lifespan(app: FastAPI):
     await _ensure_db()
     logger.info("Feedback database initialised")
 
-    # 2. Warm up retriever in background
-    async def _warmup() -> None:
-        try:
-            from agents.retriever import retriever
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, retriever._initialize)
-            logger.info("Retriever warmed up on startup")
-        except Exception:
-            logger.exception("Retriever warmup failed — continuing without it")
+    # 2. Warm up retriever only when explicitly enabled (avoids OOM on free tier).
+    if settings.enable_retriever:
+        async def _warmup() -> None:
+            try:
+                from agents.retriever import retriever
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, retriever._initialize)
+                logger.info("Retriever warmed up on startup")
+            except Exception:
+                logger.exception("Retriever warmup failed — continuing without it")
 
-    asyncio.create_task(_warmup())
+        asyncio.create_task(_warmup())
+    else:
+        logger.info("Retriever warmup skipped (ENABLE_RETRIEVER=false)")
     yield
     # ── Shutdown ── (nothing to clean up currently)
 

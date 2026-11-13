@@ -84,8 +84,19 @@ class SemanticRouter:
                 cls._instance = inst
         return cls._instance
 
+    def _semantic_enabled(self) -> bool:
+        """Read ENABLE_SEMANTIC_ROUTER without importing Settings (keeps this module light)."""
+        import os
+
+        raw = os.getenv("ENABLE_SEMANTIC_ROUTER", os.getenv("enable_semantic_router", "false"))
+        return str(raw).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
     def _ensure_model(self) -> bool:
-        """Load SentenceTransformer on first use. Returns True if ready."""
+        """Load SentenceTransformer on first use. Returns True if ready.
+
+        No-ops when ENABLE_SEMANTIC_ROUTER is false so production free-tier
+        never attempts a multi-hundred-MB model load.
+        """
         if self._initialized and self.model is not None:
             return True
         if self._load_attempted:
@@ -94,6 +105,13 @@ class SemanticRouter:
         with self._lock:
             if self._load_attempted:
                 return self.model is not None
+
+            if not self._semantic_enabled():
+                self._load_attempted = True
+                self.model = None
+                logger.info("Semantic router disabled (ENABLE_SEMANTIC_ROUTER=false); skipping model load")
+                return False
+
             self._load_attempted = True
 
             try:

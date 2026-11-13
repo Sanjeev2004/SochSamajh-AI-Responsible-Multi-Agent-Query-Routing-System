@@ -7,7 +7,10 @@ from agents.classifier import classify_intent
 from agents.router_semantic import SemanticRouter, get_semantic_router
 from core.config import Settings
 
-SETTINGS = Settings.load()
+SETTINGS = Settings.load().model_copy(update={"enable_semantic_router": True})
+SETTINGS_DISABLED = Settings.load().model_copy(
+    update={"enable_semantic_router": False, "enable_retriever": False}
+)
 
 
 def test_semantic_router_is_lazy_and_safe_without_model() -> None:
@@ -69,3 +72,14 @@ def test_classifier_survives_semantic_router_failure() -> None:
 
     assert result.domain in {"unknown", "general", "medical", "legal"}
     assert result.risk_level in {"low", "medium", "high"}
+
+
+def test_classifier_skips_semantic_router_when_disabled() -> None:
+    with patch("agents.router_semantic.get_semantic_router") as mock_router:
+        result = classify_intent(
+            "not sure where to start with FIR police complaint and doctor or lawyer",
+            SETTINGS_DISABLED,
+        )
+
+    mock_router.assert_not_called()
+    assert result.domain in {"unknown", "general", "medical", "legal"}

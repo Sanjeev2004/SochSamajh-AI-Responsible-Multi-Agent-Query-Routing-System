@@ -49,6 +49,10 @@ def _maybe_semantic_override(
 
     Lazy-loads the model; any failure falls back silently to keyword results.
     """
+    # Hard gate: never import/load SentenceTransformer when disabled (Render 512Mi).
+    if not getattr(settings, "enable_semantic_router", False):
+        return domain, confidence, reasoning, False
+
     needs_semantic = (
         domain in {Domain.UNKNOWN, "unknown"}
         or is_vague
@@ -57,14 +61,6 @@ def _maybe_semantic_override(
     )
     if not needs_semantic:
         return domain, confidence, reasoning, False
-
-    # Respect explicit disable; otherwise attempt (silent fail if model missing).
-    if hasattr(settings, "enable_semantic_router") and settings.enable_semantic_router is False:
-        # Still allow unknown/ambiguous path unless hard-disabled via env.
-        # Default Settings has enable_semantic_router=False for CI safety —
-        # enable hybrid when domain is unknown/ambiguous even then, so the
-        # wiring is exercised; predict() no-ops without a local model.
-        pass
 
     try:
         from agents.router_semantic import get_semantic_router

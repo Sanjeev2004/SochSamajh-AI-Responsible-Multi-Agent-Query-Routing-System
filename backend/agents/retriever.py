@@ -114,11 +114,23 @@ class Retriever:
             if source.snippet
         )
 
+    @staticmethod
+    def _retriever_enabled() -> bool:
+        """Gate heavy chromadb/SentenceTransformer load on ENABLE_RETRIEVER."""
+        import os
+
+        raw = os.getenv("ENABLE_RETRIEVER", os.getenv("enable_retriever", "false"))
+        return str(raw).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
     def _initialize(self) -> None:
         if self._init_attempted:
             return
 
         self._init_attempted = True
+
+        if not self._retriever_enabled():
+            logger.info("Retriever disabled (ENABLE_RETRIEVER=false); skipping chromadb/ST load")
+            return
 
         try:
             import chromadb
