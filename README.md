@@ -1,226 +1,128 @@
-# SochSamajh AI — Responsible Multi-Agent Query Routing System
+# SochSamajh AI — Responsible Multi-Agent Query Routing
 
 > **Suggested GitHub description:** Safety-first FastAPI + LangGraph router that classifies medical/legal/general queries by domain and risk, with RAG grounding, explainable routing, and a 300-case evaluation suite.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/ci.yml/badge.svg)](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/ci.yml)
 [![Evaluation](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/eval.yml/badge.svg)](https://github.com/Sanjeev2004/SochSamajh-AI-Responsible-Multi-Agent-Query-Routing-System/actions/workflows/eval.yml)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
 
-🚀 **Live Demo:** [https://soch-samajh-ai-responsible-multi-ag.vercel.app/](https://soch-samajh-ai-responsible-multi-ag.vercel.app/)  
-*(README URL is the source of truth for the public demo link.)*
+**Live demo:** [https://soch-samajh-ai-responsible-multi-ag.vercel.app/](https://soch-samajh-ai-responsible-multi-ag.vercel.app/)
 
-A safety-first multi-agent system that routes medical, legal, and general queries to specialised agents with risk-aware handling, domain-specific disclaimers, and measurable evaluation.
-
-This project is designed as a B.Tech major-project style responsible AI system — not just a chatbot UI. It combines multi-agent routing, safety checks, structured evaluation, testing, CI/CD, and a deployable full-stack engineering setup.
+Safety-first multi-agent system that routes medical, legal, and general queries to specialised agents with risk-aware handling, domain disclaimers, explainable routing, and a measurable evaluation suite. Built as a B.Tech major-project style responsible AI system — not only a chatbot UI.
 
 ---
 
-## Key Features
+## What it does
 
-- **Pre-screening** for self-harm and illegal intent before any model calls
-- **Intent Classification** across domain and risk level
-- **Tuned Domain Handling** for medical urgency, legal practical next steps, and ambiguous queries
-- **Multi-Agent Routing** via LangGraph (Safety, Medical, Legal, and General agents)
-- **Quality Assurance Critic** to enforce critical warning disclaimers
-- **Multi-turn Session Memory**: Session-based short-term conversation memory tracking the last 5 turns using `session_id`
-- **Document Upload & RAG**: Upload PDF/TXT files; text is extracted and grounded into the query context via ChromaDB retrieval
-- **Streaming Responses**: Server-Sent Events (`/api/route/stream`) for token-level streaming
-- **API Rate Limiting**: Built-in protection against API abuse (20 requests/minute) using `slowapi`
-- **Modern FastAPI Lifespan**: Replaced legacy `on_event` handlers with modern async lifespan context managers
-- **Feedback Collection**: Thumbs-up/down ratings stored in SQLite with summary and failure-analysis endpoints
-- **Premium Reactive UI**: LocalStorage history logging, loading skeletons, expandable document grounding previews, and interactive page resets
-- **Structured Offline Benchmarks** on a 300-case evaluation dataset with baselines, ablations, and judge scoring
-- **CI/CD Integration**: Fully configured GitHub Actions workflows (`ci.yml` + `eval.yml`) for automated regression testing and pipeline verification
+- **Safety pre-screen** for self-harm and illegal intent before any model calls
+- **Domain + risk classification** (medical / legal / general / unknown × low / medium / high)
+- **LangGraph agents** — Safety, Medical, Legal, General → Critic → Formatter
+- **Disclaimers & critic checks** so medical/legal answers stay educational and auditable
+- **Eval + CI** — 300-case dataset, baselines/ablations, pytest (117+), GitHub Actions
 
 ---
 
-## Recent Improvements (November 2026)
+## Highlights
 
-- **Risk scoring overhaul**: Separated medical-urgency vs legal-high-risk paths, added escalation when urgent intent + domain evidence align, and reduced false lows on emergency medical phrasing (chest pain, vomiting blood, unresponsiveness, etc.). Added `backend/tests/test_risk_scoring.py` (~40 edge cases).
-- **Hybrid semantic routing**: Wired lazy-loaded `backend/agents/router_semantic.py` into the classifier cascade for mid-confidence / unknown / ambiguous queries, with India/Hinglish domain anchors. Model load failures fall back silently; CI mocks stay offline-friendly.
-- **Real RAG corpora**: Expanded `backend/rag/data/medical_data.txt` and `legal_data.txt` with multi-section educational excerpts (diabetes, dengue, dog bite/rabies, chest-pain triage, pregnancy warnings, migraines; security deposit, FIR, consumer rights, tenancy, IPC overview). Retriever keeps keyword/BM25-like fallback if embeddings/Chroma fail.
-- **Explainability UI**: Response panel now shows “Why this route?”, triggered terms, confidence, pipeline-trace step chips, and alternative-domain scores.
-
-### Earlier (June 2026)
-
-- **Session Context Memory**: Prepend and track conversation states locally to make agent completions contextual.
-- **Streaming SSE Endpoint**: `/api/route/stream` streams classification metadata and then yields LLM tokens as Server-Sent Events.
-- **Document Upload Endpoint**: `/api/upload` accepts PDF/TXT files and returns extracted text for use as `user_context`.
-- **Session Clear Endpoint**: `DELETE /api/session/{session_id}` clears in-memory conversation history for a given session.
-- **Premium Frontend Overhaul**:
-  - Rehydrates and logs up to 20 past user queries via `localStorage` with a custom sidebar.
-  - Interactive loaders and skeleton views for feedback summaries and health parameters.
-  - Uploaded documents support dynamic expansion and previews up to 1,500 characters.
-  - Added modern "New Query" controls for smooth workflow clearing.
-- **Docker-Compose Persistence**:
-  - Integrated local volumes to persist the SQLite feedback database (`feedback.sqlite3`) across rebuilds.
-  - Upgraded `Dockerfile` with the `build-essential` and `g++` compilation toolchain to natively compile heavy vector DB packages (like `chroma-hnswlib` for ChromaDB) in containerised environments.
-- **LangSmith & Groq Gating**:
-  - Structured environment fallbacks and multi-provider selection tools with automated defaults.
-
----
-
-## System Flow
-
-```
-User Query
-  ↓
-[Pre-Screen] → Detect self-harm or illegal intent
-  ↓
-[Intent Classification] → Domain + risk level
-  ↓
-[Router] → Medical | Legal | General | Safety
-  ↓
-[Critic] → Quality check for disclaimers
-  ↓
-[Formatter] → Disclaimers + safety notes
-  ↓
-Final Response (JSON or SSE stream)
-```
+| Area | What’s in place |
+|---|---|
+| **Risk scoring** | Separate medical-urgency vs legal high-risk paths; offline **risk accuracy ~76%** after Nov 2026 overhaul (was ~62%). Routing still **~83%**. |
+| **Hybrid routing** | Keyword cascade + lazy semantic router (`router_semantic.py`) with India/Hinglish anchors; silent fallback if the embedding model fails |
+| **Educational RAG** | Expanded medical/legal corpora; keyword/BM25-like fallback if Chroma/embeddings fail |
+| **Explainability UI** | “Why this route?”, confidence, triggered terms, pipeline-trace chips |
+| **Product features** | SSE streaming, PDF/TXT upload, thumbs feedback (SQLite), session memory (last 5 turns) |
 
 ---
 
 ## Architecture
 
-### High-Level Architecture
-
 ```
 Frontend (React + TypeScript + Vite)
-         |
-         v
-FastAPI API Layer
-   ├── /api/route        (JSON response)
-   ├── /api/route/stream (SSE streaming)
-   ├── /api/upload       (document upload)
-   ├── /api/feedback     (rating storage)
-   └── /api/session/{id} (memory clear)
-         |
-         v
-LangGraph Router
-  |        |        |        |
-  v        v        v        v
-Safety   Medical   Legal   General
- Agent    Agent     Agent    Agent
-  \         |         |        /
-   \        v         v       /
-    ------ Critic + Formatter ------
-                  |
-                  v
-            Final Response
+              |
+              v
+        FastAPI API
+   /api/route  /api/route/stream  /api/upload
+   /api/feedback  /api/session/{id}  /api/health
+              |
+              v
+     Pre-screen → Classifier (keyword + optional semantic)
+              |
+              v
+         LangGraph Router
+    Safety | Medical | Legal | General
+              |
+              v
+       Critic → Formatter → Response (JSON or SSE)
 ```
 
-### Core Components
+**Request lifecycle**
 
-| Path | Responsibility |
-|---|---|
-| `backend/api/` | FastAPI endpoints: `/api/route`, `/api/route/stream`, `/api/upload`, `/api/health`, `/api/feedback`, `/api/session/{id}` |
-| `backend/core/` | Settings, LangGraph construction, structured state, request logging |
-| `backend/agents/` | Classifier, Safety, Medical, Legal, General, Critic, Formatter, Retriever |
-| `backend/services/` | Retriever gating, streaming service, document parser, session memory |
-| `backend/evaluation/` | 300-case dataset, metrics, LLM judge, baselines, ablation, report generation |
-| `backend/tests/` | Classifier, API smoke, router flow, feedback, retriever, and regression coverage (13 test files) |
-
-### Request Lifecycle
-
-1. User submits a query (and optionally a PDF/TXT file) from the React frontend.
-2. FastAPI validates the request and applies rate limiting.
-3. A pre-screen checks for self-harm or illegal intent.
-4. The classifier predicts domain and risk level.
-5. The LangGraph router routes the query to the Medical, Legal, General, or Safety agent.
-6. The critic checks for missing safety language.
-7. The formatter injects disclaimers, practical next steps, or clarification prompts.
-8. The API returns the final response as JSON (`/api/route`) or SSE tokens (`/api/route/stream`).
-9. Session turns are persisted in-memory for multi-turn context.
+1. Client sends a query (optional `user_context` / `session_id`; optional PDF/TXT via `/api/upload`).
+2. Rate limit → pre-screen (self-harm / illegal).
+3. Classifier predicts domain + risk (hybrid keyword + optional semantic).
+4. LangGraph routes to the matching agent; critic checks safety language; formatter adds disclaimers.
+5. Response returns as JSON or SSE; session turns kept in-memory for multi-turn context.
 
 ---
 
-## Why This Is Better Than Plain ChatGPT or Gemini For This Use Case
+## Why not just ChatGPT?
 
-This project is **not claiming to be universally smarter than ChatGPT or Gemini**. Those are broad general-purpose assistants.  
-The value here is that SochSamajh AI is **more controlled, auditable, and measurable for this specific medical/legal routing problem**.
+Generic assistants are broad. SochSamajh AI is **controlled, auditable, and measurable** for medical/legal routing.
 
-| Area | Generic ChatGPT / Gemini Use | SochSamajh AI |
-| --- | --- | --- |
-| Domain routing | Usually one general assistant flow | Explicit medical/legal/general/safety routing |
-| Safety path | Depends on prompt/session behaviour | Dedicated pre-screen + safety route |
-| Risk metadata | Usually hidden from user | Returns `risk_level` and `safety_flags` |
-| Disclaimers | May vary answer to answer | Enforced through the pipeline |
-| Ambiguous queries | May answer too early | Can route to `unknown` and ask clarification |
-| Evaluation | Often informal/manual | Dataset, baselines, ablations, judge, regression tests |
-| Engineering ownership | External product | Your own deployable, inspectable system |
-
+| Area | Generic ChatGPT / Gemini | SochSamajh AI |
+|---|---|---|
+| Domain routing | One general flow | Explicit medical / legal / general / safety |
+| Safety path | Prompt-dependent | Dedicated pre-screen + safety agent |
+| Risk metadata | Usually hidden | Returns `risk_level`, `safety_flags` |
+| Disclaimers | Variable | Enforced by critic + formatter |
+| Ambiguity | May answer early | Can route `unknown` and ask to clarify |
+| Evaluation | Informal | 300-case dataset, baselines, ablations, CI |
 
 ---
 
-## Quick Start
+## Quick start
 
-### Prerequisites
+**Prerequisites:** Python 3.11+, Node.js 18+
 
-- Python 3.11+
-- Node.js 18+
-- Docker (optional)
-
-### Backend Setup
+### Backend
 
 ```bash
 cd backend
-
 python -m venv venv
-
-# Windows PowerShell
-.\venv\Scripts\Activate.ps1
-# macOS/Linux
-source venv/bin/activate
-
+source venv/bin/activate   # Windows: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Copy and edit environment config
 cp .env.example .env
 ```
 
-Update `backend/.env` with:
-
-| Variable | Description | Default |
+| Variable | Description | Default / notes |
 |---|---|---|
-| `LLM_PROVIDER` | `openai` or `groq` | `openai` |
-| `OPENAI_API_KEY` | Required when using OpenAI | — |
-| `GROQ_API_KEY` | Required when using Groq | — |
-| `OPENAI_MODEL` | OpenAI model to use | `gpt-4o` |
-| `GROQ_MODEL` | Groq model to use | `llama-3.3-70b-versatile` |
-| `ENABLE_LLM` | Set `true` to spend API credits | `false` |
-| `ENABLE_RETRIEVER` | Enable Chroma/keyword RAG grounding | `false` |
-| `ENABLE_SEMANTIC_ROUTER` | Prefer semantic hybrid cascade when configured | `false` |
-| `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` |
-| `LANGSMITH_API_KEY` | LangSmith tracing key | — |
-| `LANGSMITH_PROJECT` | LangSmith project name | `medical-legal-router` |
-| `LANGCHAIN_TRACING_V2` | Enable LangChain tracing | `false` |
+| `LLM_PROVIDER` | `groq` (recommended) or `openai` | `groq` in `.env.example` |
+| `GROQ_API_KEY` | Groq API key | required when using Groq |
+| `GROQ_MODEL` | Groq model | `llama-3.3-70b-versatile` |
+| `OPENAI_API_KEY` | OpenAI key (if using OpenAI) | — |
+| `ENABLE_LLM` | Live LLM calls (`true` spends credits) | `false` |
+| `ENABLE_RETRIEVER` | Chroma / keyword RAG | `false` |
+| `ENABLE_SEMANTIC_ROUTER` | Hybrid semantic cascade | `false` |
+| `BACKEND_CORS_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:5173` |
 
-### Rebuild ChromaDB after editing RAG text
+```bash
+# From backend/
+uvicorn api.main:app --port 8000 --reload
+```
 
-After changing files under `backend/rag/data/`, rebuild the vector store:
+### Rebuild Chroma (after editing RAG text)
 
 ```bash
 cd backend
 python -m rag.ingest
-# or: python rag/ingest.py
 ```
 
-This rewrites `backend/rag/chroma_db/`. Set `ENABLE_RETRIEVER=true` for the API to use retrieval. If sentence-transformers/Chroma cannot load, the retriever falls back to an in-process keyword scorer over the same `.txt` files so the pipeline does not crash.
+Rewrites `backend/rag/chroma_db/`. Set `ENABLE_RETRIEVER=true` to use retrieval. If sentence-transformers/Chroma cannot load, the retriever falls back to an in-process keyword scorer over the same `.txt` files.
 
-> **Note:** Use `LLM_PROVIDER=groq` with `GROQ_API_KEY` to route calls through Groq's OpenAI-compatible endpoint at no OpenAI cost.
-
-### Start Backend
-
-```bash
-# From the repo root (working-directory is backend):
-uvicorn api.main:app --port 8000 --reload
-```
-
-### Frontend Setup (separate terminal)
+### Frontend
 
 ```bash
 cd frontend
@@ -228,502 +130,195 @@ npm install
 npm run dev
 ```
 
-Visit <http://localhost:5173>.
+Open <http://localhost:5173>.
 
-### One-Command Local Development (Windows PowerShell)
+**Windows one-command:** `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`
 
-```powershell
-# Start backend and frontend together
-powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
-
-# Stop both
-powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1
-
-# Run evaluation safely with the backend virtualenv
-powershell -ExecutionPolicy Bypass -File .\run-evaluation.ps1 -JudgeSampleSize 10
-```
-
-### Verify Installation
+**Smoke check:**
 
 ```bash
 curl http://localhost:8000/api/health
-
 curl -X POST http://localhost:8000/api/route \
   -H "Content-Type: application/json" \
   -d '{"query": "What is diabetes?"}'
 ```
 
----
+### Deploy (short)
 
-## Production Deployment
-
-This project supports two primary deployment strategies:
-
-### 1. Cloud PaaS (Render + Vercel) — Recommended
-
-- **Backend (FastAPI)**: Deploy on **Render** using the pre-configured [render.yaml](render.yaml).
-  - *Data Persistence:* SQLite containers on Render are ephemeral. Mount a **Render Disk** at `/app/data` (1 GiB) to persist `feedback.sqlite3` across deployments.
-- **Frontend (Vite/React)**: Deploy on **Vercel** as a static site.
-  - Set the environment variable `VITE_API_BASE_URL` in Vercel to point to your Render Web Service URL.
-
-### 2. VPS Deployment (Docker Compose)
-
-Host both frontend and backend on your own server (DigitalOcean, AWS EC2, Linode, etc.):
-
-```bash
-docker-compose up -d --build
-```
-
-- **Docker Compiler Support:** The backend `Dockerfile` includes `build-essential` and `g++` to compile vector-indexing wheels like `chroma-hnswlib` on Debian-slim images.
-- **Database Mounting:** SQLite automatically mounts to a persistent host volume.
+- **Backend:** Render via [`render.yaml`](render.yaml); mount a disk at `/app/data` if you need persistent SQLite feedback.
+- **Frontend:** Vercel; set `VITE_API_BASE_URL` to the Render URL.
+- **VPS:** `docker-compose up -d --build`
 
 ---
 
-## API Reference
+## API reference
 
-All endpoints are served on `http://localhost:8000` by default.  
-Interactive docs are available at `/docs` (Swagger UI) and `/redoc`.
+Base: `http://localhost:8000` — interactive docs at `/docs`.
 
-### `GET /api/health`
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/health` | Status, provider, model |
+| `POST` | `/api/route` | Main JSON route (20 req/min) |
+| `POST` | `/api/route/stream` | SSE: `metadata` → `token` → `done` |
+| `POST` | `/api/upload` | PDF/TXT → `{ "text": "..." }` for `user_context` |
+| `POST` | `/api/feedback` | `{ query, response, rating: "up"|"down", request_id }` |
+| `GET` | `/api/feedback/summary` | Counts + recent downs |
+| `GET` | `/api/feedback/failures` | Down-rated samples for regression review |
+| `DELETE` | `/api/session/{session_id}` | Clear in-memory session |
 
-Health check — returns service status and configuration.
+**Route body:** `{ "query": "...", "user_context"?: "...", "session_id"?: "..." }`
 
-```json
-{
-  "status": "ok",
-  "llm_provider": "openai",
-  "model": "gpt-4o",
-  "langsmith_project": "medical-legal-router"
-}
-```
+**Route response (shape):** `response`, `classification` (`domain`, `risk_level`, flags, `reasoning`), `disclaimers`, `safety_flags`, `request_id`, `sources`, `pipeline_trace`.
 
-### `POST /api/route`
+### Examples
 
-Main routing endpoint. Rate-limited to **20 req/min**.
-
-**Request body:**
-
-```json
-{
-  "query": "string (1–4000 chars, required)",
-  "user_context": "string (optional — pre-extracted document text)",
-  "session_id": "string (optional — enables multi-turn memory)"
-}
-```
-
-**Response:**
-
-```json
-{
-  "response": "string",
-  "classification": {
-    "domain": "medical | legal | general | unknown",
-    "risk_level": "low | medium | high",
-    "needs_disclaimer": true,
-    "self_harm": false,
-    "illegal_request": false,
-    "reasoning": "string"
-  },
-  "disclaimers": ["string"],
-  "safety_flags": {
-    "self_harm": false,
-    "illegal_request": false,
-    "high_risk": false
-  },
-  "request_id": "string",
-  "sources": ["string"],
-  "pipeline_trace": ["string"]
-}
-```
-
-### `POST /api/route/stream`
-
-Server-Sent Events endpoint. Rate-limited to **20 req/min**.  
-Same request body as `/api/route`. Streams newline-delimited JSON events:
-
-| Event type | Payload |
-|---|---|
-| `metadata` | Classification result |
-| `token` | Incremental LLM text token |
-| `done` | Final signal |
-| `error` | Error detail |
-
-### `POST /api/upload`
-
-Upload a PDF or TXT document for context-grounded querying.
-
-```bash
-curl -X POST http://localhost:8000/api/upload \
-  -F "file=@/path/to/document.pdf"
-```
-
-**Response:**
-
-```json
-{ "text": "extracted document text..." }
-```
-
-Pass the returned `text` as `user_context` in your subsequent `/api/route` call.
-
-### `POST /api/feedback`
-
-Submit a thumbs-up or thumbs-down rating for a response.
-
-```json
-{
-  "query": "string",
-  "response": "string",
-  "rating": "up | down",
-  "request_id": "string"
-}
-```
-
-### `GET /api/feedback/summary`
-
-Returns total feedback counts, per-rating breakdown, and the 10 most recent negative responses.
-
-### `GET /api/feedback/failures?limit=25`
-
-Returns the most recent down-rated responses for regression test candidate review.
-
-### `DELETE /api/session/{session_id}`
-
-Clears in-memory conversation history for the given session ID.
-
-```bash
-curl -X DELETE http://localhost:8000/api/session/my-session-id
-```
-
----
-
-### Example Requests & Responses
-
-#### Medical Query (Low Risk)
+**Medical (low risk)**
 
 ```bash
 curl -X POST http://localhost:8000/api/route \
   -H "Content-Type: application/json" \
   -d '{"query": "What are the symptoms of diabetes?"}'
+# → domain: medical, needs_disclaimer: true, pipeline includes medical_agent
 ```
 
-```json
-{
-  "response": "Common symptoms of diabetes include increased thirst, frequent urination, extreme hunger...",
-  "classification": {
-    "domain": "medical",
-    "risk_level": "low",
-    "needs_disclaimer": true,
-    "self_harm": false,
-    "illegal_request": false,
-    "reasoning": "Educational medical information query"
-  },
-  "disclaimers": [
-    "This is educational information only and not medical advice. Please consult a healthcare professional for diagnosis and treatment."
-  ],
-  "safety_flags": { "self_harm": false, "illegal_request": false, "high_risk": false },
-  "request_id": "req_abc123",
-  "sources": [],
-  "pipeline_trace": ["classifier", "medical_agent", "critic", "formatter"]
-}
-```
-
-#### Legal Query (Medium Risk)
-
-```bash
-curl -X POST http://localhost:8000/api/route \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What should I do if my landlord refuses to return my security deposit?"}'
-```
-
-```json
-{
-  "response": "If your landlord refuses to return your security deposit, you can: 1) Send a formal written demand letter...",
-  "classification": {
-    "domain": "legal",
-    "risk_level": "medium",
-    "needs_disclaimer": true,
-    "self_harm": false,
-    "illegal_request": false,
-    "reasoning": "Legal guidance request requiring disclaimer"
-  },
-  "disclaimers": [
-    "This is general legal information only and not legal advice. Laws vary by jurisdiction. Please consult a licensed attorney for your specific situation."
-  ],
-  "safety_flags": { "self_harm": false, "illegal_request": false, "high_risk": false },
-  "request_id": "req_def456",
-  "sources": [],
-  "pipeline_trace": ["classifier", "legal_agent", "critic", "formatter"]
-}
-```
-
-#### Safety Query (Self-Harm Detection)
+**Safety (self-harm)**
 
 ```bash
 curl -X POST http://localhost:8000/api/route \
   -H "Content-Type: application/json" \
   -d '{"query": "I am feeling suicidal"}'
-```
-
-```json
-{
-  "response": "I am really concerned about you. Please reach out to a crisis counselor immediately...",
-  "classification": {
-    "domain": "general",
-    "risk_level": "high",
-    "needs_disclaimer": true,
-    "self_harm": true,
-    "illegal_request": false,
-    "reasoning": "Self-harm intent detected"
-  },
-  "disclaimers": [],
-  "safety_flags": { "self_harm": true, "illegal_request": false, "high_risk": true },
-  "request_id": "req_ghi789",
-  "sources": [],
-  "pipeline_trace": ["pre_screen", "safety_agent"]
-}
-```
-
-#### Multi-Turn Conversation (with session_id)
-
-```bash
-# Turn 1
-curl -X POST http://localhost:8000/api/route \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is diabetes?", "session_id": "user-abc"}'
-
-# Turn 2 — agent remembers previous context
-curl -X POST http://localhost:8000/api/route \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What diet should I follow for it?", "session_id": "user-abc"}'
-
-# Clear session memory
-curl -X DELETE http://localhost:8000/api/session/user-abc
+# → pre_screen → safety_agent; safety_flags.self_harm: true
 ```
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-medical-legal-router/
-├── .github/
-│   └── workflows/
-│       ├── ci.yml          # Backend tests + frontend build on every push/PR
-│       └── eval.yml        # Router regression tests on main/master
+sochsamajh/
+├── .github/workflows/     # ci.yml, eval.yml
 ├── backend/
-│   ├── agents/             # Classifier, Safety, Medical, Legal, General, Critic, Formatter, Retriever
-│   ├── api/
-│   │   ├── main.py         # FastAPI app, lifespan, all route handlers
-│   │   └── feedback.py     # Feedback storage & summary endpoints
-│   ├── core/               # Settings (pydantic-settings), LangGraph construction, state models
-│   ├── evaluation/         # 300-case dataset, judge, baselines, ablations, report generation
-│   ├── rag/                # ChromaDB ingestion and data files
-│   ├── services/           # Retriever gating, streaming SSE, document parser, session memory
-│   ├── tests/              # 13 test files covering all layers
+│   ├── agents/            # classifier/, safety, medical, legal, general,
+│   │                      # critic, formatter, retriever, router_semantic
+│   ├── api/               # main.py, feedback.py
+│   ├── core/              # config, LangGraph, state
+│   ├── evaluation/        # dataset.json (300), judge, metrics, visualizations
+│   ├── rag/               # ingest.py, data/*.txt, chroma_db/
+│   ├── services/          # retrieval, streaming, document_parser, memory
+│   ├── tests/             # 14 test modules (117+ tests)
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env.example
 ├── frontend/
-│   ├── src/
-│   │   ├── App.tsx          # Main application component
-│   │   ├── components/      # Reusable UI components
-│   │   ├── hooks/           # Custom React hooks
-│   │   └── types/           # TypeScript type definitions
+│   ├── src/               # App, components, hooks, types
 │   ├── package.json
 │   └── Dockerfile
 ├── docker-compose.yml
-├── Procfile                 # Render deployment config
-├── render.yaml              # Render blueprint
-├── start-dev.ps1            # One-command Windows dev startup
-├── stop-dev.ps1             # Stops both backend and frontend
-├── run-evaluation.ps1       # Runs evaluation harness via venv
+├── render.yaml
+├── Procfile
 └── README.md
 ```
 
 ---
 
-## Technology Stack
+## Tech stack
 
-| Layer | Technology | Version | Purpose |
-|---|---|---|---|
-| Backend | FastAPI | 0.104.1 | Async REST API |
-| Orchestration | LangGraph | 0.1.19 | Agent routing and state flow |
-| Validation | Pydantic + pydantic-settings | 2.x | Request/response models, config |
-| LLM Providers | OpenAI SDK / Groq | ≥1.40.0 | Model calls and evaluations |
-| Vector Store | ChromaDB | 0.4.22 | Document embeddings and retrieval |
-| Rate Limiting | slowapi | 0.1.9 | API abuse protection |
-| Async SQLite | aiosqlite | 0.20.0 | Feedback storage |
-| PDF Parsing | PyPDF2 | 3.0.1 | Document upload text extraction |
-| Frontend | React + TypeScript | 18 / 5.5 | UI and API integration |
-| Styling | TailwindCSS | 3.4 | UI styles |
-| Build Tool | Vite | 5.4 | Dev server and production builds |
-| Observability | LangSmith | 0.1.x | Optional tracing |
-| Containers | Docker + Compose | — | Local and VPS deployment |
-| CI/CD | GitHub Actions | — | Automated testing on push/PR |
+| Layer | Technology | Purpose |
+|---|---|---|
+| Backend | FastAPI 0.104 | Async REST + SSE |
+| Orchestration | LangGraph 0.1.19 | Multi-agent state flow |
+| Config / models | Pydantic + pydantic-settings | Validation & settings |
+| LLM | OpenAI SDK / Groq | Completions & judge |
+| RAG | ChromaDB + sentence-transformers | Embeddings + keyword fallback |
+| Rate limit | slowapi | 20 req/min on route |
+| Feedback DB | aiosqlite | Thumbs up/down |
+| Upload | PyPDF2 | PDF text extraction |
+| Frontend | React 18 + TypeScript + Vite + Tailwind | UI |
+| Observability | LangSmith (optional) | Tracing |
+| CI/CD | GitHub Actions | pytest + frontend build |
 
 ---
 
 ## Evaluation
 
-Run the evaluation harness:
-
 ```bash
 cd backend
 python evaluation/judge.py
+# python evaluation/judge.py --judge-sample-size 10
+# python evaluation/judge.py --disable-llm-judge
 ```
 
-This reads [backend/evaluation/dataset.json](backend/evaluation/dataset.json) and writes a report to [backend/evaluation/report.json](backend/evaluation/report.json).
+Writes `backend/evaluation/report.json` from the **300-case** dataset (`dataset.json`).
 
-Useful options:
-
-```bash
-# Score only 10 production cases with the LLM judge
-python evaluation/judge.py --judge-sample-size 10
-
-# Disable LLM judging and run only routing/risk evaluation
-python evaluation/judge.py --disable-llm-judge
-```
-
-Or via environment variables:
-
-```bash
-EVAL_LLM_JUDGE_SAMPLE_SIZE=10 python evaluation/judge.py
-EVAL_ENABLE_LLM_JUDGE=false python evaluation/judge.py
-```
-
-The default dataset is normalised to **300 evaluation cases**:
-
-```json
-{
-  "id": "string",
-  "query": "string",
-  "expected_domain": "medical | legal | general | unknown",
-  "expected_risk": "low | medium | high",
-  "expected_flags": {
-    "self_harm": false,
-    "illegal_request": false,
-    "should_refuse": false
-  },
-  "category": "string",
-  "language": "en | hi | hinglish",
-  "notes": "string"
-}
-```
-
-### Current Evaluation Snapshot
-
-Latest offline benchmark on the 300-case dataset:
+### Offline snapshot (current main)
 
 | Metric | Score |
 |---|---|
-| Routing Accuracy | `83.00%` |
-| Routing Macro F1 | `79.72%` |
-| Risk Accuracy | `62.33%` |
-| Risk Macro F1 | `62.91%` |
-| High-Risk F1 | `65.63%` |
+| Routing accuracy | **~83%** |
+| Routing macro F1 | **~79.7%** |
+| Risk accuracy | **~76%** (post Nov 2026 scoring overhaul; previously ~62%) |
+| Dataset | 300 cases + baselines / ablations |
+| Tests | **117+** pytest cases in CI |
 
-These numbers are useful for project review because they show the system is being measured, not only demonstrated.
-
----
-
-## CI/CD
-
-GitHub Actions runs automatically on every push and pull request:
-
-| Workflow | Trigger | What it does |
-|---|---|---|
-| `ci.yml` | Push / PR to `main` | Installs backend deps, runs all pytest tests, installs frontend deps, builds Vite bundle |
-| `eval.yml` | Push to `main`, `master`, `codex/**` | Installs backend deps, runs `test_router.py` regression tests with `ENABLE_LLM=false` |
+`ci.yml` runs the full backend test suite + frontend build on push/PR. `eval.yml` runs router regression tests with `ENABLE_LLM=false`.
 
 ---
 
-## Demo Scenarios
-
-Recommended demo prompts:
+## Demo scenarios
 
 1. **Medical urgency** — `Chest pain with left arm pain and sweating since 20 minutes, emergency?`
-2. **Legal practical guidance** — `My landlord is not returning my security deposit. What should I do next?`
+2. **Legal next steps** — `My landlord is not returning my security deposit. What should I do next?`
 3. **Ambiguous mixed-domain** — `I need legal and medical help both, not sure where to start.`
-4. **Safety case** — `I want to hurt myself tonight.`
-5. **India-specific legal (Hindi)** — `FIR register na ho to next legal step kya hota hai?`
-6. **India-specific medical (Hinglish)** — `Dog bite hua hai and vaccine status unknown, urgent treatment chahiye.`
-
-These six prompts demonstrate routing, urgency handling, ambiguity handling, multilingual behaviour, and safety handling in a short demo.
+4. **Safety** — `I want to hurt myself tonight.`
+5. **India legal (Hindi)** — `FIR register na ho to next legal step kya hota hai?`
+6. **India medical (Hinglish)** — `Dog bite hua hai and vaccine status unknown, urgent treatment chahiye.`
 
 ---
 
-## Viva Talking Points
+## Viva talking points
 
-**If asked "What is your contribution?":**
-
-- Built a responsible multi-agent router for medical and legal queries
-- Added structured safety checks before normal answer generation
-- Created a 300-case evaluation dataset with baselines and ablations
-- Added tests, CI/CD, and deployment scripts for engineering reliability
-- Delivered a full-stack system (FastAPI + React) instead of only a prompt or notebook
-
-**If asked "Why not just use ChatGPT?":**
-
-- Generic chatbots are broad, but this project adds explicit routing, safety metadata, domain-specific formatting, benchmarking, and auditability
-- The contribution is the full controlled pipeline *around* the model, not only the model output
+- **Contribution:** End-to-end responsible router (pre-screen → classify → agents → critic → disclaimers), not only a prompt or notebook.
+- **Why not ChatGPT alone:** Explicit routing, safety flags, enforced disclaimers, explainability UI, and a 300-case measurable eval suite.
+- **Evidence:** ~83% routing / ~76% risk offline; 117+ tests; CI/CD; deployable FastAPI + React stack.
+- **Design choices:** Hybrid keyword + semantic routing for India/Hinglish; RAG with keyword fallback; session memory and feedback for iteration.
 
 ---
 
-## Safety Behaviour
+## Safety behaviour
 
 | Trigger | Behaviour |
 |---|---|
-| Self-harm intent detected | Safety response + crisis resources, `safety_flags.self_harm = true` |
-| Illegal intent detected | Refusal + lawful alternative guidance, `safety_flags.illegal_request = true` |
-| Medical output | Disclaimer-enforced educational info, `needs_disclaimer = true` |
-| Legal output | Disclaimer with jurisdiction warning, `needs_disclaimer = true` |
+| Self-harm intent | Crisis-oriented safety response; `safety_flags.self_harm = true` |
+| Illegal intent | Refusal + lawful alternatives; `safety_flags.illegal_request = true` |
+| Medical output | Educational info + enforced disclaimer |
+| Legal output | General information + jurisdiction disclaimer |
 
 ---
 
 ## Troubleshooting
 
-### Backend Issues
-
-- **Backend not reachable:** Ensure `uvicorn api.main:app --port 8000` is running from inside the `backend/` directory (or set `working-directory: backend`)
-- **ModuleNotFoundError:** Activate your virtual environment and run `pip install -r requirements.txt`
-- **CORS errors:** Add your frontend URL to `BACKEND_CORS_ORIGINS` in `.env`
-- **ChromaDB compilation error:** Ensure Docker image uses the `Dockerfile` with `build-essential` and `g++` installed
-
-### Frontend Issues
-
-- **API connection failed:** Check that `VITE_API_URL` points to your backend
-- **Build errors:** Ensure Node.js 18+ is installed
-- **Dependencies missing after cleanup:** Reinstall with `cd frontend && npm install`
-- **Path issues on Windows (folder contains `&`):** Use: `node .\node_modules\vite\bin\vite.js --host 0.0.0.0 --port 5173`
-
-### Repository Hygiene
-
-- Generated artefacts are intentionally kept out of Git (logs, caches, temporary runtime files, `*.sqlite3`, `backend/data/`).
-- If local cleanup removed frontend dependencies, run `npm install` inside [frontend](frontend).
-- To rebuild retrieval data, use [backend/rag/ingest.py](backend/rag/ingest.py) so vectors are written only to [backend/rag/chroma_db](backend/rag/chroma_db).
-
-### Deployment Issues
-
-- **Render build fails:** Check build logs for missing dependencies; ensure `build-essential` is in the Dockerfile
-- **Environment variables not working:** Verify they are set in the Render dashboard, not only in `.env`
-- **CORS errors in production:** Add your production frontend URL (e.g., `https://yourapp.vercel.app`) to `BACKEND_CORS_ORIGINS`
-- **SQLite data lost on Render:** Mount a Render Disk at `/app/data` to persist `feedback.sqlite3`
+| Issue | Fix |
+|---|---|
+| `401 expired_api_key` / Invalid API Key | Refresh `OPENAI_API_KEY` or `GROQ_API_KEY` on Render (or local `.env`) and set `ENABLE_LLM=true` |
+| Backend unreachable | Run `uvicorn api.main:app --port 8000` from `backend/` |
+| `ModuleNotFoundError` | Activate venv; `pip install -r requirements.txt` |
+| CORS errors | Add frontend origin to `BACKEND_CORS_ORIGINS` |
+| Frontend can’t reach API | Set `VITE_API_BASE_URL` / `VITE_API_URL` to the backend URL |
+| Chroma build fails in Docker | Use backend `Dockerfile` (includes `build-essential` / `g++`) |
+| SQLite lost on Render | Mount a Render Disk at `/app/data` |
 
 ---
 
-## Contributing
+## Contributing / next steps
 
-Ideas for improvements:
-
-- Expand safety and domain keyword coverage in [backend/agents/classifier](backend/agents/classifier)
-- Re-enable semantic routing in [backend/agents/router_semantic.py](backend/agents/router_semantic.py)
-- Improve RAG ingestion and query grounding in [backend/rag/](backend/rag/)
-- Add conversation history persistence (currently in-memory; add a DB backend)
-- Expand the 300-case evaluation dataset with more Hinglish and edge cases
-- Add authentication (API keys or OAuth) for multi-user deployments
+- Persist session memory beyond in-process store (DB-backed)
+- Human evaluation pass on the 300-case set
+- Run `python -m rag.ingest` in deploy so Chroma is warm in production
+- Optional auth (API keys / OAuth) for multi-user deployments
+- Expand Hinglish / edge-case coverage in the dataset and classifier keywords
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
